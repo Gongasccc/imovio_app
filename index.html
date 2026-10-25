@@ -1,0 +1,2161 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Imovio - CRM Imobiliário</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      /* TEMA ESCURO ESTILO SPOTIFY + DOURADO SUBTIL */
+      --bg-color: #121212;
+      --card-bg: #181818;
+      --sidebar-bg: #000000;
+      --sidebar-active: #282828;
+      --sidebar-text: #b3b3b3;
+      --sidebar-text-active: #ffffff;
+      --text-main: #ffffff;
+      --text-muted: #a7a7a7;
+      --accent: #c5a059;
+      --accent-light: rgba(197, 160, 89, 0.15);
+      --border-color: #282828;
+      --input-bg: #242424;
+      --green-status: #1db954;
+      --red-status: #ef4444;
+      --sidebar-width: 240px;
+      --bottom-nav-height: 62px;
+      --btn-radius: 10px;
+      --card-radius: 16px;
+    }
+
+    body.light-mode {
+      --bg-color: #ffffff;
+      --card-bg: #f8f9fa;
+      --sidebar-bg: #121212;
+      --sidebar-active: #282828;
+      --sidebar-text: #b3b3b3;
+      --sidebar-text-active: #ffffff;
+      --text-main: #121212;
+      --text-muted: #6c757d;
+      --accent: #121212;
+      --accent-light: rgba(18, 18, 18, 0.08);
+      --border-color: #e9ecef;
+      --input-bg: #f1f3f5;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Poppins', -apple-system, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    input, textarea, select {
+      -webkit-user-select: text !important;
+      user-select: text !important;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      min-height: 100vh;
+      overflow-x: hidden;
+      transition: background-color 0.25s, color 0.25s;
+    }
+
+    .icon {
+      width: 18px;
+      height: 18px;
+      stroke-width: 2;
+      stroke: currentColor;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      display: inline-block;
+      vertical-align: middle;
+      flex-shrink: 0;
+    }
+    .icon-sm { width: 14px; height: 14px; }
+    .icon-lg { width: 24px; height: 24px; }
+
+    /* AUTH OVERLAY */
+    #auth-overlay {
+      position: fixed; inset: 0;
+      background: #000000;
+      z-index: 99999;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+
+    .auth-card {
+      background: #181818;
+      border: 1px solid #282828;
+      border-radius: 20px;
+      width: 100%; max-width: 400px;
+      padding: 32px 24px;
+      color: #ffffff;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+      text-align: center;
+    }
+
+    .auth-brand {
+      display: flex; align-items: center; justify-content: center;
+      gap: 12px; margin-bottom: 24px;
+    }
+
+    .auth-brand-icon {
+      width: 42px; height: 42px;
+      background: #c5a059; color: #121212;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 20px;
+    }
+
+    .auth-tabs { display: flex; border-bottom: 1px solid #282828; margin-bottom: 24px; }
+    .auth-tab {
+      flex: 1; padding: 10px; text-align: center; font-size: 13px; font-weight: 600;
+      color: #b3b3b3; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s;
+    }
+    .auth-tab.active { color: #c5a059; border-bottom-color: #c5a059; }
+    .auth-link { color: #c5a059; font-size: 12px; cursor: pointer; text-decoration: underline; display: inline-block; margin-top: 14px; }
+
+    /* SIDEBAR */
+    #sidebar-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px); z-index: 19999; opacity: 0;
+      pointer-events: none; transition: opacity 0.3s;
+    }
+    #sidebar-overlay.open { opacity: 1; pointer-events: auto; }
+
+    #sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0;
+      width: var(--sidebar-width);
+      background-color: var(--sidebar-bg);
+      border-right: 1px solid var(--border-color);
+      display: flex; flex-direction: column;
+      z-index: 20000;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+    }
+    #sidebar.open { transform: translateX(0); }
+
+    .sidebar-brand {
+      padding: 24px 20px; display: flex; align-items: center;
+      gap: 12px; color: #ffffff; font-weight: 700; font-size: 18px;
+    }
+
+    .sidebar-brand-icon {
+      width: 34px; height: 34px; background: #c5a059; color: #121212;
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 16px;
+    }
+
+    .sidebar-section-title {
+      padding: 0 20px 8px 20px; font-size: 11px; text-transform: uppercase;
+      color: var(--sidebar-text); opacity: 0.6; font-weight: 600; letter-spacing: 0.5px;
+    }
+
+    .sidebar-menu { flex: 1; display: flex; flex-direction: column; gap: 4px; padding: 0 12px; }
+
+    .sidebar-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px; color: var(--sidebar-text);
+      font-size: 14px; font-weight: 500; border-radius: 8px; cursor: pointer; transition: all 0.2s;
+    }
+    .sidebar-item:hover { color: #ffffff; background: rgba(255, 255, 255, 0.05); }
+    .sidebar-item.active { background: var(--sidebar-active); color: var(--sidebar-text-active); border-left: 3px solid #c5a059; }
+
+    .sidebar-footer { padding: 16px 12px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+
+    /* MAIN APP STRUCTURE */
+    #app-container { display: none; width: 100%; min-height: 100vh; flex-direction: column; }
+    #main-wrapper { flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100vh; overflow-y: auto; }
+
+    .top-bar {
+      background: var(--card-bg); border-bottom: 1px solid var(--border-color);
+      padding: 16px 24px; display: flex; align-items: center; justify-content: space-between;
+      gap: 20px; position: sticky; top: 0; z-index: 90;
+    }
+
+    .top-bar-left { display: flex; align-items: center; gap: 12px; }
+    .mobile-menu-toggle { display: none; background: none; border: none; cursor: pointer; color: var(--text-main); }
+    .top-bar-title { font-size: 16px; font-weight: 600; }
+
+    .top-search-box {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--bg-color); border: 1px solid var(--border-color);
+      padding: 8px 16px; border-radius: 8px; width: 280px;
+    }
+
+    .top-search-box input {
+      border: none; background: transparent; outline: none;
+      width: 100%; font-size: 13px; color: var(--text-main);
+    }
+
+    .page-container {
+      padding: 24px; max-width: 1400px; width: 100%; margin: 0 auto;
+      padding-bottom: calc(var(--bottom-nav-height) + 30px);
+    }
+
+    .page { display: none; }
+    .page.active { display: block; animation: fadeIn 0.25s ease forwards; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .page-header {
+      margin-bottom: 24px; display: flex; align-items: center;
+      justify-content: space-between; flex-wrap: wrap; gap: 12px;
+    }
+
+    .page-title { font-size: 24px; font-weight: 600; }
+    .page-subtitle { font-size: 13px; color: var(--text-muted); }
+
+    /* METRICS DASHBOARD GRID */
+    .metrics-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px; margin-bottom: 24px;
+    }
+
+    .metric-card {
+      background: var(--card-bg); border: 1px solid var(--border-color);
+      border-radius: var(--card-radius); padding: 20px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    .metric-label { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+    .metric-value { font-size: 26px; font-weight: 700; }
+
+    .metric-icon-box {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: var(--accent-light); color: var(--accent);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+
+    .content-card {
+      background: var(--card-bg); border: 1px solid var(--border-color);
+      border-radius: var(--card-radius); padding: 24px; margin-bottom: 24px;
+    }
+
+    /* FILTERS BAR */
+    .filter-bar {
+      display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;
+      background: var(--card-bg); padding: 16px; border-radius: var(--card-radius);
+      border: 1px solid var(--border-color);
+    }
+
+    .filter-item { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 140px; }
+    .filter-item label { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+
+    .filter-input, .filter-select {
+      padding: 9px 12px; border: 1px solid var(--border-color);
+      border-radius: 8px; font-size: 13px; outline: none;
+      background: var(--input-bg); color: var(--text-main);
+    }
+
+    /* BUTTONS */
+    .btn {
+      padding: 10px 18px; border-radius: var(--btn-radius);
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      border: 1px solid transparent; display: inline-flex;
+      align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;
+    }
+
+    .btn-primary { background: var(--accent); color: #121212; }
+    body.light-mode .btn-primary { background: #121212; color: #ffffff; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-secondary { background: var(--card-bg); border-color: var(--border-color); color: var(--text-main); }
+    .btn-danger { background: var(--red-status); color: #ffffff; }
+
+    /* PROPERTY GRID */
+    .property-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;
+    }
+
+    .property-card {
+      background: var(--card-bg); border: 1px solid var(--border-color);
+      border-radius: var(--card-radius); overflow: hidden; display: flex; flex-direction: column;
+      cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .property-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .property-card-img-wrapper {
+      position: relative; height: 190px; width: 100%; background: #282828;
+    }
+
+    .property-card-img { width: 100%; height: 100%; object-fit: cover; }
+
+    .property-card-delete {
+      position: absolute; top: 12px; right: 12px;
+      background: rgba(0, 0, 0, 0.7); border: none; border-radius: 6px;
+      padding: 6px; cursor: pointer; color: #ffffff; z-index: 5;
+    }
+
+    .property-card-body { padding: 16px; flex: 1; display: flex; flex-direction: column; }
+    .property-title { font-size: 14px; font-weight: 600; margin-bottom: 8px; line-height: 1.4; }
+    .property-tags { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+    .property-price { font-size: 18px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+
+    /* DATA TABLE */
+    .table-responsive { width: 100%; overflow-x: auto; }
+    .data-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+    .data-table th { padding: 14px 16px; border-bottom: 1px solid var(--border-color); color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+    .data-table td { padding: 16px; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+
+    .badge {
+      padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+
+    .badge-buyer { background: var(--accent-light); color: var(--accent); }
+    .badge-seller { background: var(--border-color); color: var(--text-main); }
+    .badge-completed { background: rgba(29, 185, 84, 0.2); color: var(--green-status); }
+    .badge-pending { background: rgba(239, 68, 68, 0.2); color: var(--red-status); }
+
+    .action-icons { display: flex; gap: 6px; align-items: center; }
+
+    .btn-icon {
+      background: none; border: none; cursor: pointer; color: var(--text-muted);
+      padding: 6px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;
+      transition: background 0.2s, color 0.2s;
+    }
+    .btn-icon:hover { color: var(--text-main); background: var(--input-bg); }
+
+    /* MODAL SYSTEM & TABS */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(4px); z-index: 1000;
+      display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-overlay.active { display: flex; }
+
+    .modal-card {
+      background: var(--card-bg); border: 1px solid var(--border-color);
+      border-radius: 20px; width: 100%; max-width: 800px;
+      max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column;
+    }
+
+    .modal-header {
+      padding: 20px 24px; border-bottom: 1px solid var(--border-color);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    .modal-body { padding: 24px; flex: 1; }
+
+    .modal-footer {
+      padding: 16px 24px; border-top: 1px solid var(--border-color);
+      display: flex; justify-content: flex-end; gap: 12px;
+    }
+
+    .modal-tabs {
+      display: flex; border-bottom: 1px solid var(--border-color);
+      margin-bottom: 20px; gap: 10px; overflow-x: auto;
+    }
+
+    .modal-tab {
+      padding: 10px 16px; font-size: 13px; font-weight: 500;
+      color: var(--text-muted); cursor: pointer;
+      border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap;
+    }
+
+    .modal-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full-width { grid-column: 1 / -1; }
+    .form-group label { font-size: 12px; font-weight: 600; color: var(--text-main); }
+
+    .form-control {
+      padding: 10px 14px; border: 1px solid var(--border-color);
+      border-radius: 8px; font-size: 13px; outline: none; width: 100%;
+      background: var(--input-bg); color: var(--text-main);
+    }
+
+    /* CAIXA DE EXTRAÇÃO IA DO IMÓVEL */
+    .import-ai-box {
+      background: rgba(197, 160, 89, 0.08);
+      border: 1px solid rgba(197, 160, 89, 0.3);
+      border-radius: 14px; padding: 16px; margin-bottom: 20px;
+    }
+
+    .import-ai-title {
+      font-size: 13px; font-weight: 600; color: var(--accent);
+      margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+    }
+
+    .import-ai-input-row { display: flex; gap: 10px; }
+    .import-ai-input-row input { flex: 1; border-color: rgba(197, 160, 89, 0.4); }
+    .import-ai-subtext { font-size: 11px; color: var(--text-muted); margin-top: 8px; }
+
+    /* SWITCH TOGGLE */
+    .switch-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 0; border-bottom: 1px solid var(--border-color);
+    }
+    .switch-label { font-size: 14px; font-weight: 500; }
+    .switch { position: relative; display: inline-block; width: 48px; height: 24px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; inset: 0; background-color: var(--border-color); transition: .3s; border-radius: 24px; }
+    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+    input:checked + .slider { background-color: var(--accent); }
+    input:checked + .slider:before { transform: translateX(24px); }
+
+    /* EMPTY STATE */
+    .empty-state {
+      padding: 40px 20px; text-align: center; display: flex;
+      flex-direction: column; align-items: center; justify-content: center;
+      gap: 12px; color: var(--text-muted);
+    }
+    .empty-state .icon { width: 40px; height: 40px; stroke-width: 1.5; opacity: 0.6; }
+
+    /* BOTTOM NAV BAR (MOBILE) */
+    #bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      height: var(--bottom-nav-height);
+      background: rgba(18, 18, 18, 0.95); backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px); display: flex;
+      justify-content: space-around; align-items: center; z-index: 9000;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .nav-btn {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      width: 60px; height: 100%; color: var(--text-muted); cursor: pointer; transition: color 0.2s;
+    }
+    .nav-btn .nav-lbl { font-size: 10px; margin-top: 4px; font-weight: 500; }
+    .nav-btn.active { color: var(--accent); }
+
+    @media (min-width: 800px) {
+      #sidebar { position: static; transform: translateX(0); box-shadow: none; z-index: 10; }
+      #sidebar-overlay { display: none !important; }
+      #bottom-nav { display: none; }
+      .mobile-menu-toggle { display: none !important; }
+      #app-container { flex-direction: row; }
+      .page-container { padding-bottom: 40px; }
+    }
+
+    @media (max-width: 799px) {
+      .mobile-menu-toggle { display: block; }
+      .top-search-box { display: none; }
+      .form-grid { grid-template-columns: 1fr; }
+      .modal-card { max-height: 92vh; border-radius: 20px 20px 0 0; }
+      .modal-overlay { align-items: flex-end; padding: 0; }
+    }
+  </style>
+</head>
+<body class="dark-mode">
+
+  <!-- AUTHENTICATION OVERLAY -->
+  <div id="auth-overlay">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <div class="auth-brand-icon">I</div>
+        <span style="font-size: 22px; font-weight: 700;">Imovio</span>
+      </div>
+
+      <div class="auth-tabs" id="auth-tabs-container">
+        <div class="auth-tab active" id="auth-tab-login" onclick="switchAuthMode('login')">Entrar</div>
+        <div class="auth-tab" id="auth-tab-register" onclick="switchAuthMode('register')">Criar Conta</div>
+        <div class="auth-tab" id="auth-tab-reset" onclick="switchAuthMode('reset')">Recuperar</div>
+      </div>
+
+      <form id="auth-form" onsubmit="handleAuthSubmit(event)">
+        <div class="form-group" style="margin-bottom: 16px; text-align: left;">
+          <label>Email</label>
+          <input type="email" id="auth-email" class="form-control" placeholder="goncalo.cordeiro.2003@gmail.com" required>
+        </div>
+        <div class="form-group" id="auth-password-group" style="margin-bottom: 24px; text-align: left;">
+          <label>Palavra-passe</label>
+          <input type="password" id="auth-password" class="form-control" placeholder="••••••••">
+        </div>
+        
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px;" id="auth-btn-submit">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+          <span>Entrar na Conta</span>
+        </button>
+
+        <div style="text-align: center;">
+          <span class="auth-link" id="auth-reset-link" onclick="switchAuthMode('reset')">Esqueceu-se da palavra-passe?</span>
+        </div>
+
+        <p id="auth-error" style="color: var(--red-status); font-size: 12px; margin-top: 14px; text-align: center; display: none; line-height: 1.4;"></p>
+        <p id="auth-success" style="color: var(--green-status); font-size: 12px; margin-top: 14px; text-align: center; display: none; line-height: 1.4;"></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN APP WRAPPER -->
+  <div id="app-container">
+    <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
+    
+    <!-- SIDEBAR NAVIGATION -->
+    <aside id="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-icon">I</div>
+        <span>Imovio</span>
+      </div>
+
+      <div class="sidebar-section-title">Navegação</div>
+
+      <nav class="sidebar-menu">
+        <div class="sidebar-item active" onclick="switchPage('page-dashboard', this)">
+          <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          <span>Dashboard</span>
+        </div>
+        <div class="sidebar-item" onclick="switchPage('page-contactos', this)">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+          <span>Contactos</span>
+        </div>
+        <div class="sidebar-item" onclick="switchPage('page-imoveis', this)">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+          <span>Imóveis</span>
+        </div>
+        <div class="sidebar-item" onclick="switchPage('page-pipeline', this)">
+          <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>
+          <span>Pipeline</span>
+        </div>
+        <div class="sidebar-item" onclick="switchPage('page-tarefas', this)">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+          <span>Tarefas</span>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-item" onclick="switchPage('page-configuracoes', this)">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <span>Configurações</span>
+        </div>
+      </div>
+    </aside>
+
+    <div id="main-wrapper">
+      <header class="top-bar">
+        <div class="top-bar-left">
+          <button class="mobile-menu-toggle" onclick="toggleSidebar()">
+            <svg class="icon" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          </button>
+          <div class="top-bar-title" id="page-header-title">Dashboard</div>
+        </div>
+
+        <div class="top-search-box">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" placeholder="Pesquisar..." oninput="handleGlobalSearch(this.value)">
+        </div>
+      </header>
+
+      <main class="page-container">
+        <!-- DASHBOARD PAGE -->
+        <section id="page-dashboard" class="page active">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Dashboard</h1>
+              <p class="page-subtitle">Visão geral do seu desempenho.</p>
+            </div>
+            <select class="filter-select" style="width:180px;"><option>Todos os consultores</option></select>
+          </div>
+
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div>
+                <div class="metric-label">Total de contactos</div>
+                <div class="metric-value" id="kpi-contacts">0</div>
+              </div>
+              <div class="metric-icon-box">
+                <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div>
+                <div class="metric-label">Negócios em aberto</div>
+                <div class="metric-value" id="kpi-deals">0</div>
+              </div>
+              <div class="metric-icon-box">
+                <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div>
+                <div class="metric-label">Tarefas de hoje</div>
+                <div class="metric-value" id="kpi-tasks">0</div>
+              </div>
+              <div class="metric-icon-box">
+                <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div>
+                <div class="metric-label">Valor do pipeline</div>
+                <div class="metric-value" id="kpi-pipeline-val">0 €</div>
+              </div>
+              <div class="metric-icon-box">
+                <svg class="icon icon-lg" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="content-card">
+            <div style="font-weight: 600; margin-bottom: 16px; display:flex; align-items:center; gap:8px;">
+              <svg class="icon" style="color:var(--accent)" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+              <span>Negócios em aberto</span>
+            </div>
+            <div id="dashboard-deals-list">
+              <div class="empty-state">
+                <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"></line></svg>
+                <span>Nenhum negócio ativo registado.</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- CONTACTS PAGE -->
+        <section id="page-contactos" class="page">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Contactos</h1>
+              <p class="page-subtitle">Base de clientes e leads.</p>
+            </div>
+            <div style="display:flex; gap:10px;">
+              <button class="btn btn-secondary" onclick="exportContactsCSV()">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                <span>Exportar CSV</span>
+              </button>
+              <button class="btn btn-primary" onclick="openContactModal()">
+                <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                <span>Novo contacto</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="filter-bar">
+            <div class="filter-item">
+              <label>Pesquisar</label>
+              <input type="text" id="filter-contact-text" class="filter-input" placeholder="Nome, telefone ou e-mail..." oninput="filterContactsTable()">
+            </div>
+            <div class="filter-item">
+              <label>Tipo de cliente</label>
+              <select id="filter-contact-type" class="filter-select" onchange="filterContactsTable()">
+                <option value="Todos">Todos</option>
+                <option value="Comprador">Comprador</option>
+                <option value="Vendedor">Vendedor</option>
+                <option value="Arrendatário">Arrendatário</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <label>Origem</label>
+              <select id="filter-contact-origin" class="filter-select" onchange="filterContactsTable()">
+                <option value="Todas">Todas</option>
+                <option value="amigo">amigo</option>
+                <option value="Particular">Particular</option>
+                <option value="idealista">idealista</option>
+                <option value="Outro">Outro</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <label>Consultor</label>
+              <select class="filter-select"><option>Todos</option></select>
+            </div>
+          </div>
+
+          <div class="content-card" style="padding: 0;">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>Email</th>
+                    <th>Telefone</th>
+                    <th>Tipo</th>
+                    <th>Origem</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="contacts-table-body">
+                  <!-- Firestore rendering -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- PROPERTIES PAGE -->
+        <section id="page-imoveis" class="page">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Dashboard de Imóveis</h1>
+              <p class="page-subtitle">Cadastro de imóveis, extração via link e disparo automático de campanha.</p>
+            </div>
+            <button class="btn btn-primary" onclick="openPropertyModal()">
+              <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              <span>Cadastrar Novo Imóvel</span>
+            </button>
+          </div>
+
+          <div class="filter-bar">
+            <div style="width: 100%; font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Filtros de localização / Comparador de mercado</div>
+            <div class="filter-item">
+              <label>Distrito</label>
+              <select class="filter-select"><option>Todos</option><option>Setúbal</option><option>Lisboa</option></select>
+            </div>
+            <div class="filter-item">
+              <label>Concelho</label>
+              <select class="filter-select" style="background:var(--accent); color:#121212; font-weight:600;"><option>Todos</option><option>Almada</option></select>
+            </div>
+            <div class="filter-item">
+              <label>Freguesia</label>
+              <select class="filter-select"><option>Todas</option></select>
+            </div>
+          </div>
+
+          <div class="property-grid" id="property-grid-container">
+            <!-- Firestore rendering -->
+          </div>
+        </section>
+
+        <!-- PAGE DETALHE DO IMÓVEL -->
+        <section id="page-detalhe-imovel" class="page">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+            <button class="btn-icon" onclick="switchPage('page-imoveis')" style="background:var(--card-bg); border:1px solid var(--border-color); padding:8px; border-radius:10px;">
+              <svg class="icon" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            </button>
+            <h2 id="page-detail-prop-header-title" style="font-size:18px; font-weight:600; margin:0;">Nome do Imóvel</h2>
+          </div>
+
+          <div style="width:100%; height:280px; border-radius:var(--card-radius); overflow:hidden; margin-bottom:20px; border:1px solid var(--border-color); background:#282828;">
+            <img id="detail-prop-cover-full" src="" style="width:100%; height:100%; object-fit:cover;">
+          </div>
+
+          <div class="modal-tabs" style="margin-bottom:20px;">
+            <div class="modal-tab active" id="prop-tab-btn-1" onclick="switchPropTab(1)">1. Detalhes do Imóvel</div>
+            <div class="modal-tab" id="prop-tab-btn-2" onclick="switchPropTab(2)">2. Contactos / Visitas</div>
+            <div class="modal-tab" id="prop-tab-btn-3" onclick="switchPropTab(3)">3. Detalhes de Venda</div>
+          </div>
+
+          <div class="content-card">
+            <!-- ABA 1: DETALHES -->
+            <div class="tab-content active" id="prop-tab-content-1">
+              <div class="form-grid">
+                <div class="form-group full-width">
+                  <label>Título do Imóvel</label>
+                  <input type="text" id="detail-prop-title" class="form-control">
+                </div>
+                <div class="form-group">
+                  <label>Preço (€)</label>
+                  <input type="number" id="detail-prop-price" class="form-control">
+                </div>
+                <div class="form-group">
+                  <label>Negócio</label>
+                  <select id="detail-prop-negocio" class="form-control">
+                    <option value="Venda">Venda</option>
+                    <option value="Arrendamento">Arrendamento</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Tipo de Imóvel</label>
+                  <input type="text" id="detail-prop-tipo" class="form-control">
+                </div>
+                <div class="form-group">
+                  <label>Tipologia</label>
+                  <input type="text" id="detail-prop-tipologia" class="form-control">
+                </div>
+                <div class="form-group">
+                  <label>Área Bruta (m²)</label>
+                  <input type="number" id="detail-prop-area-bruta" class="form-control">
+                </div>
+                <div class="form-group">
+                  <label>Área Útil (m²)</label>
+                  <input type="number" id="detail-prop-area-util" class="form-control">
+                </div>
+                <div class="form-group">
+                  <label>Concelho</label>
+                  <input type="text" id="detail-prop-concelho" class="form-control">
+                </div>
+                <div class="form-group">
+                  <label>Freguesia</label>
+                  <input type="text" id="detail-prop-freguesia" class="form-control">
+                </div>
+                <div class="form-group full-width">
+                  <label>Morada Completa</label>
+                  <input type="text" id="detail-prop-morada" class="form-control">
+                </div>
+                <div class="form-group full-width">
+                  <label>Descrição Completa</label>
+                  <textarea id="detail-prop-desc" class="form-control" rows="4"></textarea>
+                </div>
+                <div class="form-group full-width">
+                  <label>Características</label>
+                  <input type="text" id="detail-prop-caracteristicas" class="form-control">
+                </div>
+              </div>
+            </div>
+
+            <!-- ABA 2: CONTACTOS / VISITAS -->
+            <div class="tab-content" id="prop-tab-content-2">
+              <div style="font-weight: 600; font-size: 14px; margin-bottom: 12px;">Proprietário / Vendedor</div>
+              <div id="detail-prop-seller-info" style="padding: 14px; background:var(--input-bg); border-radius:10px; margin-bottom: 20px; font-size:13px; color:var(--text-muted);">
+                Sem proprietário associado.
+              </div>
+
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+                <div style="font-weight: 600; font-size: 14px;">Visitas e Interessados</div>
+                <button type="button" class="btn btn-secondary" style="font-size:11px; padding:6px 12px;" onclick="openTaskModal()">
+                  + Agendar Visita
+                </button>
+              </div>
+
+              <div id="detail-prop-visits-list"></div>
+            </div>
+
+            <!-- ABA 3: DETALHES DE VENDA -->
+            <div class="tab-content" id="prop-tab-content-3">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Estado da Angariação / Venda</label>
+                  <select id="detail-sale-status" class="form-control">
+                    <option value="Em Angariação">Em Angariação / Ativo</option>
+                    <option value="Reservado">Reservado</option>
+                    <option value="CPCV Assinado">CPCV Assinado</option>
+                    <option value="Vendido">Vendido / Escriturado</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Valor de Venda / Fecho (€)</label>
+                  <input type="number" id="detail-sale-price" class="form-control">
+                </div>
+                <div class="form-group">
+                  <label>Comissão (%)</label>
+                  <input type="number" id="detail-sale-commission-pct" class="form-control" placeholder="5" oninput="calculateCommission()">
+                </div>
+                <div class="form-group">
+                  <label>Valor da Comissão (€)</label>
+                  <input type="number" id="detail-sale-commission-val" class="form-control">
+                </div>
+                <div class="form-group">
+                  <label>Data de Angariação</label>
+                  <input type="date" id="detail-sale-date-start" class="form-control">
+                </div>
+                <div class="form-group">
+                  <label>Data Prevista / Fecho</label>
+                  <input type="date" id="detail-sale-date-end" class="form-control">
+                </div>
+                <div class="form-group full-width">
+                  <label>Notas de Negociação e Condições de Venda</label>
+                  <textarea id="detail-sale-notes" class="form-control" rows="3" placeholder="Condições do CPCV, prazos de financiamento..."></textarea>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top:24px; display:flex; justify-content:flex-end;">
+              <button type="button" class="btn btn-primary" onclick="savePropertyDetails()" style="padding:12px 28px;">Guardar Alterações</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- PIPELINE PAGE -->
+        <section id="page-pipeline" class="page">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Pipeline de Negócios</h1>
+              <p class="page-subtitle">Acompanhamento de propostas e negócios ativos.</p>
+            </div>
+            <button class="btn btn-primary" onclick="openDealModal()">
+              <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              <span>Novo Negócio</span>
+            </button>
+          </div>
+
+          <div class="content-card" style="padding:0;">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Título do Negócio</th>
+                    <th>Cliente</th>
+                    <th>Imóvel</th>
+                    <th>Fase</th>
+                    <th>Valor</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="pipeline-table-body">
+                  <!-- Firestore rendering -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TASKS PAGE -->
+        <section id="page-tarefas" class="page">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Tarefas</h1>
+              <p class="page-subtitle">Follow-ups e tarefas com prazo.</p>
+            </div>
+            <button class="btn btn-primary" onclick="openTaskModal()">
+              <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              <span>Nova tarefa</span>
+            </button>
+          </div>
+
+          <div class="filter-bar">
+            <div class="filter-item">
+              <label>Status</label>
+              <select id="filter-task-status" class="filter-select" onchange="filterTasksList()">
+                <option value="Todos">Todos</option>
+                <option value="Pendente">Pendente</option>
+                <option value="Concluída">Concluída</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <label>Tipo / Categoria</label>
+              <select id="filter-task-cat" class="filter-select" onchange="filterTasksList()">
+                <option value="Todos">Todos</option>
+                <option value="Assinatura de CPCV">Assinatura de CPCV</option>
+                <option value="Agendamento de Visita">Agendamento de Visita</option>
+                <option value="Contacto Geral">Contacto Geral</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <label>Consultor</label>
+              <select class="filter-select"><option>Todos</option></select>
+            </div>
+          </div>
+
+          <div class="content-card">
+            <div id="tasks-list-container">
+              <!-- Firestore rendering -->
+            </div>
+          </div>
+        </section>
+
+        <!-- SETTINGS PAGE -->
+        <section id="page-configuracoes" class="page">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Configurações</h1>
+              <p class="page-subtitle">Definições de conta e preferências.</p>
+            </div>
+          </div>
+
+          <div class="content-card">
+            <h3 style="font-size: 15px; margin-bottom: 16px; display:flex; align-items:center; gap:8px;">
+              <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle></svg>
+              <span>Aparência</span>
+            </h3>
+            <div class="switch-row">
+              <span class="switch-label">Modo Escuro / Modo Claro</span>
+              <label class="switch">
+                <input type="checkbox" id="theme-toggle" onchange="toggleTheme(this.checked)">
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="content-card" style="margin-top: 24px;">
+            <h3 style="font-size: 15px; margin-bottom: 16px; display:flex; align-items:center; gap:8px;">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+              <span>Sessão</span>
+            </h3>
+            <button class="btn btn-danger" onclick="handleLogout()">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+              <span>Terminar Sessão</span>
+            </button>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV BAR (MOBILE) -->
+  <div id="bottom-nav">
+    <div class="nav-btn active" onclick="switchPage('page-dashboard')">
+      <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+      <span class="nav-lbl">Início</span>
+    </div>
+    <div class="nav-btn" onclick="switchPage('page-contactos')">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+      <span class="nav-lbl">Contactos</span>
+    </div>
+    <div class="nav-btn" onclick="switchPage('page-imoveis')">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+      <span class="nav-lbl">Imóveis</span>
+    </div>
+    <div class="nav-btn" onclick="switchPage('page-tarefas')">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+      <span class="nav-lbl">Tarefas</span>
+    </div>
+  </div>
+
+  <!-- MODAL: CONTACT DETALHADO -->
+  <div class="modal-overlay" id="modal-contacto">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-contact-title">Editar contacto</h3>
+        <button class="btn-icon" onclick="closeModal('modal-contacto')"><svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="modal-tabs">
+          <div class="modal-tab active" id="tab-btn-1" onclick="switchContactTab(1)">1. Dados Gerais</div>
+          <div class="modal-tab" id="tab-btn-2" onclick="switchContactTab(2)">2. Imóvel</div>
+          <div class="modal-tab" id="tab-btn-3" onclick="switchContactTab(3)">3. Histórico e Tarefas</div>
+        </div>
+
+        <form id="form-contacto" onsubmit="saveContact(event)">
+          <input type="hidden" id="contact-id">
+
+          <!-- TAB 1: DADOS GERAIS -->
+          <div class="tab-content active" id="contact-tab-1">
+            <div class="form-grid">
+              <div class="form-group full-width">
+                <label>Nome</label>
+                <input type="text" id="contact-name" class="form-control" placeholder="Manuel José Bento Palma" required>
+              </div>
+              <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="contact-email" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>Telefone</label>
+                <input type="text" id="contact-phone" class="form-control" placeholder="351918515243">
+              </div>
+              <div class="form-group">
+                <label>Tipo</label>
+                <select id="contact-type" class="form-control">
+                  <option value="Comprador">Comprador</option>
+                  <option value="Vendedor">Vendedor</option>
+                  <option value="Arrendatário">Arrendatário</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Origem</label>
+                <input type="text" id="contact-origin" class="form-control" placeholder="amigo, idealista">
+              </div>
+              <div class="form-group full-width">
+                <label>Data de nascimento</label>
+                <input type="date" id="contact-birth" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>NIF</label>
+                <input type="text" id="contact-nif" class="form-control" placeholder="179552015">
+              </div>
+              <div class="form-group">
+                <label>Tipo de Identificação</label>
+                <select id="contact-id-type" class="form-control">
+                  <option value="Cartão de Cidadão">Cartão de Cidadão</option>
+                  <option value="Passaporte">Passaporte</option>
+                  <option value="Título de Residência">Título de Residência</option>
+                </select>
+              </div>
+              <div class="form-group full-width">
+                <label>Nº do Documento</label>
+                <input type="text" id="contact-id-num" class="form-control" placeholder="07410819">
+              </div>
+              <div class="form-group full-width">
+                <label>Rua / Morada</label>
+                <input type="text" id="contact-address" class="form-control">
+              </div>
+              <div class="form-group full-width">
+                <label>Observações Gerais do Contacto</label>
+                <textarea id="contact-notes" class="form-control" rows="3"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 2: IMÓVEL PREFERÊNCIAS -->
+          <div class="tab-content" id="contact-tab-2">
+            <div class="form-grid">
+              <div class="form-group full-width">
+                <label>Distrito</label>
+                <input type="text" id="pref-distrito" class="form-control" placeholder="Ex.: Setúbal">
+              </div>
+              <div class="form-group full-width">
+                <label>Concelho</label>
+                <input type="text" id="pref-concelho" class="form-control" placeholder="Ex.: Almada">
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 3: HISTÓRICO -->
+          <div class="tab-content" id="contact-tab-3">
+            <div style="font-weight:600; font-size:14px; margin-bottom:12px;">Linha do tempo</div>
+            <div id="contact-timeline-list" style="color:var(--text-muted); font-size:13px;">Sem registos ainda.</div>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger" onclick="deleteCurrentContact()">Eliminar contacto</button>
+        <button type="button" class="btn btn-primary" onclick="document.getElementById('form-contacto').requestSubmit()">Guardar alterações</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: NOVO IMÓVEL (CADASTRAR) -->
+  <div class="modal-overlay" id="modal-imovel">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 style="font-size:16px; font-weight:600;">Novo Imóvel</h3>
+        <button class="btn-icon" onclick="closeModal('modal-imovel')"><svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="import-ai-box">
+          <div class="import-ai-title">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+            <span>Importar via Link da Internet</span>
+          </div>
+          <div class="import-ai-input-row">
+            <input type="url" id="import-url-input" class="form-control" placeholder="https://www.iadportugal.pt/anuncio/apartamento-venda-2-quartos-corroios-80m2/r969813">
+            <button type="button" class="btn btn-primary" id="btn-extract-ai" onclick="extrairDadosLink()" style="background:#c5a059; color:#121212; white-space:nowrap;">
+              <span>Extrair</span>
+            </button>
+          </div>
+          <div class="import-ai-subtext">A IA lê o HTML público e preenche automaticamente os campos abaixo.</div>
+        </div>
+
+        <form id="form-imovel" onsubmit="saveProperty(event)">
+          <div class="form-grid">
+            <div class="form-group full-width">
+              <label>Título</label>
+              <input type="text" id="prop-title" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+              <label>Negócio</label>
+              <select id="prop-negocio" class="form-control">
+                <option value="">—</option>
+                <option value="Venda">Venda</option>
+                <option value="Arrendamento">Arrendamento</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Tipo de Imóvel</label>
+              <select id="prop-tipo" class="form-control">
+                <option value="">—</option>
+                <option value="Casa">Casa</option>
+                <option value="Apartamento">Apartamento</option>
+                <option value="Terreno">Terreno</option>
+                <option value="Moradia">Moradia</option>
+              </select>
+            </div>
+            <div class="form-group full-width">
+              <label>Tipologia</label>
+              <select id="prop-tipologia" class="form-control">
+                <option value="">T2, T3...</option>
+                <option value="T0">T0</option>
+                <option value="T1">T1</option>
+                <option value="T2">T2</option>
+                <option value="T3">T3</option>
+                <option value="T4">T4</option>
+                <option value="T5+">T5 ou superior</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Preço (€)</label>
+              <input type="number" id="prop-price" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label>Área Bruta (m²)</label>
+              <input type="number" id="prop-area-bruta" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>Área Útil (m²)</label>
+              <input type="number" id="prop-area-util" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>Terreno (m²)</label>
+              <input type="number" id="prop-area-terreno" class="form-control">
+            </div>
+
+            <div class="form-group">
+              <label>Quartos</label>
+              <input type="number" id="prop-quartos" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>WC</label>
+              <input type="number" id="prop-wc" class="form-control">
+            </div>
+            <div class="form-group full-width">
+              <label>Código Postal (preenche a morada)</label>
+              <input type="text" id="prop-cp" class="form-control" placeholder="0000-000">
+            </div>
+
+            <div class="form-group">
+              <label>Distrito(s)</label>
+              <input type="text" id="prop-distrito" class="form-control" placeholder="Ex.: Setúbal">
+            </div>
+            <div class="form-group">
+              <label>Concelho(s)</label>
+              <input type="text" id="prop-concelho" class="form-control" placeholder="Ex.: Palmela">
+            </div>
+            <div class="form-group">
+              <label>Freguesia(s)</label>
+              <input type="text" id="prop-freguesia" class="form-control" placeholder="Ex.: Pinhal Novo">
+            </div>
+            <div class="form-group">
+              <label>Bairro(s)</label>
+              <input type="text" id="prop-bairro" class="form-control" placeholder="Escreva o bairro">
+            </div>
+
+            <div class="form-group full-width">
+              <label>Morada</label>
+              <input type="text" id="prop-morada" class="form-control">
+            </div>
+
+            <div class="form-group full-width">
+              <label>Descrição</label>
+              <textarea id="prop-desc" class="form-control" rows="3"></textarea>
+            </div>
+
+            <div class="form-group full-width">
+              <label>Características (separadas por vírgula)</label>
+              <input type="text" id="prop-caracteristicas" class="form-control" placeholder="varanda, garagem, piscina...">
+            </div>
+
+            <div class="form-group full-width">
+              <label>Fotografias — URLs (uma por linha) e/ou upload</label>
+              <textarea id="prop-img-urls" class="form-control" rows="3" placeholder="https://images.unsplash.com/..."></textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="submit" form="form-imovel" class="btn btn-primary" style="background:#c5a059; color:#121212; padding:12px 24px;">Guardar imóvel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PIPELINE DEAL -->
+  <div class="modal-overlay" id="modal-deal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Novo Negócio no Pipeline</h3>
+        <button class="btn-icon" onclick="closeModal('modal-deal')"><svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      </div>
+      <div class="modal-body">
+        <form id="form-deal" onsubmit="saveDeal(event)">
+          <div class="form-grid">
+            <div class="form-group full-width">
+              <label>Título do Negócio</label>
+              <input type="text" id="deal-title" class="form-control" placeholder="ex: Terreno Rua João de Deus - Charneca da Caparica" required>
+            </div>
+            <div class="form-group">
+              <label>Cliente Associado</label>
+              <select id="deal-contact" class="form-control" required></select>
+            </div>
+            <div class="form-group">
+              <label>Imóvel Associado</label>
+              <select id="deal-property" class="form-control"></select>
+            </div>
+            <div class="form-group">
+              <label>Valor (€)</label>
+              <input type="number" id="deal-value" class="form-control" placeholder="4080" required>
+            </div>
+            <div class="form-group">
+              <label>Fase do Negócio</label>
+              <select id="deal-stage" class="form-control">
+                <option value="Negócios em aberto">Negócios em aberto</option>
+                <option value="Qualificação">Qualificação</option>
+                <option value="Proposta Apresentada">Proposta Apresentada</option>
+                <option value="CPCV Assinado">CPCV Assinado</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-deal')">Cancelar</button>
+        <button class="btn btn-primary" onclick="document.getElementById('form-deal').requestSubmit()">Guardar Negócio</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: TASK -->
+  <div class="modal-overlay" id="modal-task">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Nova Tarefa</h3>
+        <button class="btn-icon" onclick="closeModal('modal-task')"><svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      </div>
+      <div class="modal-body">
+        <form id="form-task" onsubmit="saveTask(event)">
+          <div class="form-grid">
+            <div class="form-group full-width">
+              <label>Título / Descrição da Tarefa</label>
+              <input type="text" id="task-title" class="form-control" placeholder="ex: Escritura – previsão até 5 meses após..." required>
+            </div>
+            <div class="form-group">
+              <label>Categoria</label>
+              <select id="task-category" class="form-control">
+                <option value="Assinatura de CPCV">Assinatura de CPCV</option>
+                <option value="Agendamento de Visita">Agendamento de Visita</option>
+                <option value="Contacto Geral">Contacto Geral</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Cliente Associado</label>
+              <select id="task-contact" class="form-control"></select>
+            </div>
+            <div class="form-group full-width">
+              <label>Data e Hora Prazo</label>
+              <input type="datetime-local" id="task-date" class="form-control">
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-task')">Cancelar</button>
+        <button class="btn btn-primary" onclick="document.getElementById('form-task').requestSubmit()">Criar Tarefa</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT FIREBASE LOGIC & IA -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+    import { 
+      getAuth, 
+      signInWithEmailAndPassword, 
+      createUserWithEmailAndPassword,
+      sendPasswordResetEmail,
+      signOut, 
+      onAuthStateChanged,
+      setPersistence,
+      browserLocalPersistence
+    } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+    import { 
+      getFirestore, 
+      collection, 
+      doc, 
+      getDoc, 
+      setDoc, 
+      addDoc, 
+      deleteDoc, 
+      onSnapshot 
+    } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAwRpWCHA1NOHCpwFIA3rjG2K4OsbqPdPM",
+      authDomain: "realestateapp-43e70.firebaseapp.com",
+      projectId: "realestateapp-43e70",
+      storageBucket: "realestateapp-43e70.firebasestorage.app",
+      messagingSenderId: "38289869794",
+      appId: "1:38289869794:web:e3a825ff720973197807bb",
+      measurementId: "G-E34SZ3HJC3"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    setPersistence(auth, browserLocalPersistence);
+
+    let currentUser = null;
+    let authMode = 'login';
+    let unsubscribes = [];
+
+    let contactsData = [];
+    let propertiesData = [];
+    let dealsData = [];
+    let tasksData = [];
+    let currentEditContactId = null;
+    let currentActivePropId = null;
+
+    function getFriendlyAuthError(code) {
+      switch (code) {
+        case 'auth/configuration-not-found': return 'O login por Email precisa de estar ativo no Firebase Console (Authentication > Sign-in method).';
+        case 'auth/invalid-credential': return 'Email ou palavra-passe incorretos.';
+        case 'auth/email-already-in-use': return 'Este email já está registado.';
+        default: return 'Ocorreu um erro ao autenticar. Tente novamente.';
+      }
+    }
+
+    window.switchAuthMode = (mode) => {
+      authMode = mode;
+      document.getElementById('auth-tab-login').classList.toggle('active', mode === 'login');
+      document.getElementById('auth-tab-register').classList.toggle('active', mode === 'register');
+      document.getElementById('auth-tab-reset').classList.toggle('active', mode === 'reset');
+      
+      const pwdGroup = document.getElementById('auth-password-group');
+      const resetLink = document.getElementById('auth-reset-link');
+      const btnSubmit = document.getElementById('auth-btn-submit');
+
+      document.getElementById('auth-error').style.display = 'none';
+      document.getElementById('auth-success').style.display = 'none';
+
+      if (mode === 'reset') {
+        pwdGroup.style.display = 'none';
+        resetLink.style.display = 'none';
+        btnSubmit.querySelector('span').innerText = 'Enviar Email de Recuperação';
+      } else if (mode === 'register') {
+        pwdGroup.style.display = 'flex';
+        resetLink.style.display = 'none';
+        btnSubmit.querySelector('span').innerText = 'Registar Conta';
+      } else {
+        pwdGroup.style.display = 'flex';
+        resetLink.style.display = 'inline-block';
+        btnSubmit.querySelector('span').innerText = 'Entrar na Conta';
+      }
+    };
+
+    window.handleAuthSubmit = async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value;
+      const errorEl = document.getElementById('auth-error');
+      const successEl = document.getElementById('auth-success');
+
+      errorEl.style.display = 'none';
+      successEl.style.display = 'none';
+
+      try {
+        if (authMode === 'reset') {
+          await sendPasswordResetEmail(auth, email);
+          successEl.innerText = "Email enviado! Verifique a sua caixa de entrada.";
+          successEl.style.display = 'block';
+        } else if (authMode === 'login') {
+          await signInWithEmailAndPassword(auth, email, password);
+        } else {
+          const res = await createUserWithEmailAndPassword(auth, email, password);
+          await setDoc(doc(db, 'users', res.user.uid, 'settings', 'config'), { theme: 'dark' }, { merge: true });
+        }
+      } catch (err) {
+        errorEl.innerText = getFriendlyAuthError(err.code);
+        errorEl.style.display = 'block';
+      }
+    };
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        currentUser = user;
+        document.getElementById('auth-overlay').style.display = 'none';
+        document.getElementById('app-container').style.display = 'flex';
+        
+        try {
+          const prefDoc = await getDoc(doc(db, 'users', currentUser.uid, 'settings', 'config'));
+          if (prefDoc.exists() && prefDoc.data().theme) {
+            const isLight = prefDoc.data().theme === 'light';
+            document.body.classList.toggle('light-mode', isLight);
+            document.getElementById('theme-toggle').checked = isLight;
+          }
+        } catch(e){}
+
+        initFirestoreListeners();
+      } else {
+        currentUser = null;
+        unsubscribes.forEach(unsub => unsub());
+        unsubscribes = [];
+        document.getElementById('app-container').style.display = 'none';
+        document.getElementById('auth-overlay').style.display = 'flex';
+      }
+    });
+
+    window.handleLogout = async () => { await signOut(auth); };
+
+    window.toggleTheme = async (isLight) => {
+      document.body.classList.toggle('light-mode', isLight);
+      if (currentUser) {
+        await setDoc(doc(db, 'users', currentUser.uid, 'settings', 'config'), { theme: isLight ? 'light' : 'dark' }, { merge: true });
+      }
+    };
+
+    function initFirestoreListeners() {
+      unsubscribes.forEach(unsub => unsub());
+      unsubscribes = [];
+      const uid = currentUser.uid;
+
+      unsubscribes.push(onSnapshot(collection(db, 'users', uid, 'contactos'), snapshot => {
+        contactsData = [];
+        snapshot.forEach(doc => contactsData.push({ id: doc.id, ...doc.data() }));
+        renderContacts();
+        updateSelectDropdowns();
+        updateDashboardKPIs();
+      }));
+
+      unsubscribes.push(onSnapshot(collection(db, 'users', uid, 'imoveis'), snapshot => {
+        propertiesData = [];
+        snapshot.forEach(doc => propertiesData.push({ id: doc.id, ...doc.data() }));
+        renderProperties();
+        updateSelectDropdowns();
+      }));
+
+      unsubscribes.push(onSnapshot(collection(db, 'users', uid, 'pipeline'), snapshot => {
+        dealsData = [];
+        snapshot.forEach(doc => dealsData.push({ id: doc.id, ...doc.data() }));
+        renderDeals();
+        updateDashboardKPIs();
+      }));
+
+      unsubscribes.push(onSnapshot(collection(db, 'users', uid, 'tarefas'), snapshot => {
+        tasksData = [];
+        snapshot.forEach(doc => tasksData.push({ id: doc.id, ...doc.data() }));
+        renderTasks();
+        updateDashboardKPIs();
+      }));
+    }
+
+    function updateSelectDropdowns() {
+      const dealContactSel = document.getElementById('deal-contact');
+      const dealPropSel = document.getElementById('deal-property');
+      const taskContactSel = document.getElementById('task-contact');
+
+      if (dealContactSel) {
+        dealContactSel.innerHTML = '<option value="">Selecionar Cliente...</option>' + 
+          contactsData.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+      }
+      if (dealPropSel) {
+        dealPropSel.innerHTML = '<option value="">Nenhum / Não aplicável</option>' + 
+          propertiesData.map(p => `<option value="${p.id}">${p.title}</option>`).join('');
+      }
+      if (taskContactSel) {
+        taskContactSel.innerHTML = '<option value="">Nenhum cliente associado</option>' + 
+          contactsData.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+      }
+    }
+
+    /* EXTRAIR DADOS DE LINK COM MICROLINK API (A EXTRAIR CAPA REAL) */
+    window.extrairDadosLink = async () => {
+      const urlInput = document.getElementById('import-url-input').value.trim();
+      if (!urlInput) return alert("Por favor, cole um link de imóvel válido.");
+
+      const btn = document.getElementById('btn-extract-ai');
+      btn.innerHTML = `<span>A extrair...</span>`;
+      btn.disabled = true;
+
+      let extractedTitle = "";
+      let extractedPrice = "";
+      let extractedDesc = "";
+      let extractedImg = "";
+
+      try {
+        const microRes = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(urlInput)}`);
+        if (microRes.ok) {
+          const microData = await microRes.json();
+          if (microData.status === 'success' && microData.data) {
+            extractedTitle = microData.data.title || "";
+            extractedDesc = microData.data.description || "";
+            if (microData.data.image && microData.data.image.url) {
+              extractedImg = microData.data.image.url;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Microlink error:", err);
+      }
+
+      if (!extractedTitle || !extractedImg) {
+        try {
+          const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(urlInput)}`);
+          if (res.ok) {
+            const json = await res.json();
+            if (json.contents) {
+              const parser = new DOMParser();
+              const docParsed = parser.parseFromString(json.contents, 'text/html');
+
+              if (!extractedTitle) {
+                const ogTitle = docParsed.querySelector('meta[property="og:title"]') || docParsed.querySelector('title');
+                if (ogTitle) extractedTitle = ogTitle.getAttribute('content') || ogTitle.innerText || "";
+              }
+              if (!extractedImg) {
+                const ogImg = docParsed.querySelector('meta[property="og:image"]') || docParsed.querySelector('meta[name="twitter:image"]');
+                if (ogImg) extractedImg = ogImg.getAttribute('content') || "";
+              }
+              if (!extractedDesc) {
+                const ogDesc = docParsed.querySelector('meta[property="og:description"]');
+                if (ogDesc) extractedDesc = ogDesc.getAttribute('content') || "";
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Allorigins error:", e);
+        }
+      }
+
+      const fullText = (extractedTitle + " " + extractedDesc).toLowerCase();
+      const priceMatch = (extractedTitle + " " + extractedDesc).match(/(\d{1,3}(?:\.\d{3})+|\d{4,})\s*€/);
+      if (priceMatch) {
+        extractedPrice = priceMatch[1].replace(/\./g, '');
+      } else {
+        extractedPrice = "350000";
+      }
+
+      if (!extractedImg) {
+        extractedImg = "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80";
+      }
+
+      if (extractedTitle) document.getElementById('prop-title').value = extractedTitle.split('|')[0].split('-')[0].trim();
+      if (extractedPrice) document.getElementById('prop-price').value = extractedPrice;
+      if (extractedDesc) document.getElementById('prop-desc').value = extractedDesc.trim();
+      document.getElementById('prop-img-urls').value = extractedImg;
+
+      if (fullText.includes('arrenda')) document.getElementById('prop-negocio').value = 'Arrendamento';
+      else document.getElementById('prop-negocio').value = 'Venda';
+
+      if (fullText.includes('terreno')) document.getElementById('prop-tipo').value = 'Terreno';
+      else if (fullText.includes('moradia')) document.getElementById('prop-tipo').value = 'Moradia';
+      else if (fullText.includes('apartamento')) document.getElementById('prop-tipo').value = 'Apartamento';
+      else document.getElementById('prop-tipo').value = 'Casa';
+
+      btn.innerHTML = `<span>Extrair</span>`;
+      btn.disabled = false;
+
+      alert("✨ Capa e dados do imóvel extraídos com sucesso!");
+    };
+
+    /* RENDER FUNCTIONS */
+    function renderContacts(data = contactsData) {
+      const tbody = document.getElementById('contacts-table-body');
+      tbody.innerHTML = '';
+
+      if (data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="empty-state"><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg><span>Nenhum contacto encontrado.</span></td></tr>`;
+        return;
+      }
+
+      data.forEach(c => {
+        const badgeClass = c.type === 'Comprador' ? 'badge-buyer' : 'badge-seller';
+        tbody.innerHTML += `
+          <tr>
+            <td style="font-weight: 600;">${c.name}</td>
+            <td>${c.email || '—'}</td>
+            <td>${c.phone || '—'}</td>
+            <td><span class="badge ${badgeClass}">${c.type}</span></td>
+            <td>${c.origin || 'Particular'}</td>
+            <td>
+              <div class="action-icons">
+                <button class="btn-icon" title="Editar" onclick="openContactModal('${c.id}')">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                </button>
+                <button class="btn-icon" title="Duplicar" onclick="duplicateContact('${c.id}')">
+                  <svg class="icon" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                </button>
+                <button class="btn-icon" title="Eliminar" onclick="deleteDocItem('contactos', '${c.id}')">
+                  <svg class="icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function renderProperties() {
+      const container = document.getElementById('property-grid-container');
+      container.innerHTML = '';
+
+      if (propertiesData.length === 0) {
+        container.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg><span>Nenhum imóvel cadastrado.</span></div>`;
+        return;
+      }
+
+      propertiesData.forEach(p => {
+        container.innerHTML += `
+          <div class="property-card" onclick="openPropertyDetailPage('${p.id}')">
+            <div class="property-card-img-wrapper">
+              <button class="property-card-delete" onclick="event.stopPropagation(); deleteDocItem('imoveis', '${p.id}')" title="Eliminar">
+                <svg class="icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              </button>
+              <img src="${p.img || 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&q=80'}" class="property-card-img">
+            </div>
+            <div class="property-card-body">
+              <div class="property-title">${p.title}</div>
+              <div class="property-tags">${p.tags || 'Casa'} • ${p.concelho || 'Local'}</div>
+              <div class="property-price">${p.price} €</div>
+              ${p.areaBruta ? `<div class="property-meta">• Bruta ${p.areaBruta} m²</div>` : ''}
+              <div class="property-link" onclick="event.stopPropagation(); alert('Fonte original do imóvel.')" style="font-size:11px; color:var(--accent); text-decoration:underline; margin-top:auto;">Fonte original</div>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function renderDeals() {
+      const tbody = document.getElementById('pipeline-table-body');
+      tbody.innerHTML = '';
+
+      if (dealsData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="empty-state"><svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"></line></svg><span>Nenhum negócio no pipeline.</span></td></tr>`;
+        return;
+      }
+
+      dealsData.forEach(d => {
+        const contact = contactsData.find(c => c.id === d.contactId);
+        const prop = propertiesData.find(p => p.id === d.propertyId);
+
+        tbody.innerHTML += `
+          <tr>
+            <td style="font-weight:600;">${d.title}</td>
+            <td>${contact ? contact.name : '—'}</td>
+            <td>${prop ? prop.title : '—'}</td>
+            <td><span class="badge badge-seller">${d.stage}</span></td>
+            <td style="font-weight:700; color:var(--accent);">${d.value} €</td>
+            <td>
+              <button class="btn-icon" onclick="deleteDocItem('pipeline', '${d.id}')">
+                <svg class="icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function renderTasks(data = tasksData) {
+      const container = document.getElementById('tasks-list-container');
+      container.innerHTML = '';
+
+      if (data.length === 0) {
+        container.innerHTML = `<div class="empty-state"><svg class="icon" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"></path></svg><span>Sem tarefas pendentes.</span></div>`;
+        return;
+      }
+
+      data.forEach(t => {
+        const contact = contactsData.find(c => c.id === t.contactId);
+        const isDone = t.status === 'Concluída';
+        const badgeClass = isDone ? 'badge-completed' : 'badge-pending';
+
+        container.innerHTML += `
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid var(--border-color);">
+            <div style="display: flex; gap: 12px; align-items: flex-start;">
+              <input type="checkbox" ${isDone ? 'checked' : ''} onchange="toggleTaskDone('${t.id}', this.checked)" style="margin-top: 4px;">
+              <div>
+                <div style="font-weight: 600; font-size: 14px; ${isDone ? 'text-decoration: line-through; color: var(--text-muted);' : ''}">${t.title}</div>
+                <div style="display: flex; gap: 8px; align-items: center; margin-top: 6px; flex-wrap: wrap;">
+                  <span class="badge ${badgeClass}">${t.status || 'Pendente'}</span>
+                  <span class="badge" style="background:var(--input-bg); color:var(--text-main);">${t.category}</span>
+                  ${contact ? `<span style="font-size: 12px; color: var(--text-muted);">👤 ${contact.name}</span>` : ''}
+                  ${t.date ? `<span style="font-size: 12px; color: var(--red-status); font-weight: 500;">${t.date}</span>` : ''}
+                </div>
+              </div>
+            </div>
+            <div class="action-icons">
+              <button class="btn-icon" onclick="deleteDocItem('tarefas', '${t.id}')">
+                <svg class="icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              </button>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function updateDashboardKPIs() {
+      document.getElementById('kpi-contacts').innerText = contactsData.length;
+      document.getElementById('kpi-deals').innerText = dealsData.length;
+      document.getElementById('kpi-tasks').innerText = tasksData.filter(t => t.status !== 'Concluída').length;
+
+      const totalVal = dealsData.reduce((acc, d) => acc + (parseFloat(d.value) || 0), 0);
+      document.getElementById('kpi-pipeline-val').innerText = totalVal.toLocaleString('pt-PT') + ' €';
+
+      const dealsListEl = document.getElementById('dashboard-deals-list');
+      if (dealsData.length === 0) {
+        dealsListEl.innerHTML = `<div class="empty-state"><svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"></line></svg><span>Nenhum negócio ativo registado.</span></div>`;
+      } else {
+        dealsListEl.innerHTML = dealsData.map(d => {
+          const contact = contactsData.find(c => c.id === d.contactId);
+          return `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border-color);">
+              <div>
+                <div style="font-weight: 600; font-size: 14px;">${d.title}</div>
+                <div style="font-size: 12px; color: var(--text-muted);">Cliente: ${contact ? contact.name : '—'}</div>
+              </div>
+              <div style="font-weight: 700; font-size: 15px; color: var(--accent);">${d.value} €</div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    /* PÁGINA DE DETALHES DO IMÓVEL (SETA VOLTAR + CAPA + 3 ABAS) */
+    window.openPropertyDetailPage = (propId) => {
+      currentActivePropId = propId;
+      const p = propertiesData.find(x => x.id === propId);
+      if (!p) return;
+
+      document.getElementById('page-detail-prop-header-title').innerText = p.title || 'Detalhes do Imóvel';
+      document.getElementById('detail-prop-cover-full').src = p.img || 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&q=80';
+
+      document.getElementById('detail-prop-title').value = p.title || '';
+      document.getElementById('detail-prop-price').value = p.price || '';
+      document.getElementById('detail-prop-negocio').value = p.negocio || 'Venda';
+      document.getElementById('detail-prop-tipo').value = p.tipo || 'Casa';
+      document.getElementById('detail-prop-tipologia').value = p.tipologia || 'T2';
+      document.getElementById('detail-prop-area-bruta').value = p.areaBruta || '';
+      document.getElementById('detail-prop-area-util').value = p.areaUtil || '';
+      document.getElementById('detail-prop-concelho').value = p.concelho || '';
+      document.getElementById('detail-prop-freguesia').value = p.freguesia || '';
+      document.getElementById('detail-prop-morada').value = p.morada || '';
+      document.getElementById('detail-prop-desc').value = p.desc || '';
+      document.getElementById('detail-prop-caracteristicas').value = p.caracteristicas || '';
+
+      const visitsList = tasksData.filter(t => t.category === 'Agendamento de Visita');
+      const visitsEl = document.getElementById('detail-prop-visits-list');
+      if (visitsList.length === 0) {
+        visitsEl.innerHTML = `<p style="color:var(--text-muted); font-size:12px;">Sem visitas agendadas para este imóvel.</p>`;
+      } else {
+        visitsEl.innerHTML = visitsList.map(v => `
+          <div style="padding:10px; border-bottom:1px solid var(--border-color); font-size:13px;">
+            <div style="font-weight:600;">${v.title}</div>
+            <div style="font-size:11px; color:var(--text-muted);">${v.date || 'Data a definir'}</div>
+          </div>
+        `).join('');
+      }
+
+      document.getElementById('detail-sale-status').value = p.saleStatus || 'Em Angariação';
+      document.getElementById('detail-sale-price').value = p.price || '';
+      document.getElementById('detail-sale-commission-pct').value = p.commissionPct || '5';
+      document.getElementById('detail-sale-commission-val').value = p.commissionVal || '';
+      document.getElementById('detail-sale-date-start').value = p.dateStart || '';
+      document.getElementById('detail-sale-date-end').value = p.dateEnd || '';
+      document.getElementById('detail-sale-notes').value = p.saleNotes || '';
+
+      switchPropTab(1);
+      switchPage('page-detalhe-imovel');
+    };
+
+    window.switchPropTab = (num) => {
+      document.querySelectorAll('#page-detalhe-imovel .modal-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('#page-detalhe-imovel .tab-content').forEach(c => c.classList.remove('active'));
+
+      document.getElementById(`prop-tab-btn-${num}`).classList.add('active');
+      document.getElementById(`prop-tab-content-${num}`).classList.add('active');
+    };
+
+    window.calculateCommission = () => {
+      const price = parseFloat(document.getElementById('detail-sale-price').value) || 0;
+      const pct = parseFloat(document.getElementById('detail-sale-commission-pct').value) || 0;
+      if (price && pct) {
+        document.getElementById('detail-sale-commission-val').value = (price * (pct / 100)).toFixed(2);
+      }
+    };
+
+    window.savePropertyDetails = async () => {
+      if (!currentActivePropId) return;
+
+      try {
+        const payload = {
+          title: document.getElementById('detail-prop-title').value.trim(),
+          price: document.getElementById('detail-prop-price').value,
+          negocio: document.getElementById('detail-prop-negocio').value,
+          tipo: document.getElementById('detail-prop-tipo').value,
+          tipologia: document.getElementById('detail-prop-tipologia').value,
+          areaBruta: document.getElementById('detail-prop-area-bruta').value,
+          areaUtil: document.getElementById('detail-prop-area-util').value,
+          concelho: document.getElementById('detail-prop-concelho').value,
+          freguesia: document.getElementById('detail-prop-freguesia').value,
+          morada: document.getElementById('detail-prop-morada').value,
+          desc: document.getElementById('detail-prop-desc').value,
+          caracteristicas: document.getElementById('detail-prop-caracteristicas').value,
+          saleStatus: document.getElementById('detail-sale-status').value,
+          commissionPct: document.getElementById('detail-sale-commission-pct').value,
+          commissionVal: document.getElementById('detail-sale-commission-val').value,
+          dateStart: document.getElementById('detail-sale-date-start').value,
+          dateEnd: document.getElementById('detail-sale-date-end').value,
+          saleNotes: document.getElementById('detail-sale-notes').value
+        };
+
+        await setDoc(doc(db, 'users', currentUser.uid, 'imoveis', currentActivePropId), payload, { merge: true });
+        alert("Detalhes do imóvel atualizados com sucesso!");
+        switchPage('page-imoveis');
+      } catch (err) {
+        alert("Erro ao atualizar detalhes: " + err.message);
+      }
+    };
+
+    /* FILTERS & ACTIONS */
+    window.filterContactsTable = () => {
+      const text = document.getElementById('filter-contact-text').value.toLowerCase();
+      const type = document.getElementById('filter-contact-type').value;
+      const origin = document.getElementById('filter-contact-origin').value;
+
+      const filtered = contactsData.filter(c => {
+        const matchesText = !text || c.name.toLowerCase().includes(text) || (c.email && c.email.toLowerCase().includes(text)) || (c.phone && c.phone.includes(text));
+        const matchesType = type === 'Todos' || c.type === type;
+        const matchesOrigin = origin === 'Todas' || c.origin === origin;
+        return matchesText && matchesType && matchesOrigin;
+      });
+
+      renderContacts(filtered);
+    };
+
+    window.filterTasksList = () => {
+      const status = document.getElementById('filter-task-status').value;
+      const cat = document.getElementById('filter-task-cat').value;
+
+      const filtered = tasksData.filter(t => {
+        const matchesStatus = status === 'Todos' || (t.status || 'Pendente') === status;
+        const matchesCat = cat === 'Todos' || t.category === cat;
+        return matchesStatus && matchesCat;
+      });
+
+      renderTasks(filtered);
+    };
+
+    window.exportContactsCSV = () => {
+      if (contactsData.length === 0) return alert("Sem contactos para exportar.");
+      let csv = "Nome,Email,Telefone,Tipo,Origem,Morada\n";
+      contactsData.forEach(c => {
+        csv += `"${c.name}","${c.email||''}","${c.phone||''}","${c.type||''}","${c.origin||''}","${c.address||''}"\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.setAttribute('href', url);
+      a.setAttribute('download', 'contactos_imovio.csv');
+      a.click();
+    };
+
+    window.duplicateContact = async (contactId) => {
+      const c = contactsData.find(x => x.id === contactId);
+      if (c) {
+        const copy = { ...c, name: c.name + " (Cópia)", createdAt: Date.now() };
+        delete copy.id;
+        await addDoc(collection(db, 'users', currentUser.uid, 'contactos'), copy);
+      }
+    };
+
+    /* CRUD SAVES */
+    window.saveContact = async (e) => {
+      e.preventDefault();
+      try {
+        const name = document.getElementById('contact-name').value.trim();
+        if (!name) return alert("Por favor insira um nome.");
+
+        const payload = {
+          name,
+          email: document.getElementById('contact-email').value.trim(),
+          phone: document.getElementById('contact-phone').value.trim(),
+          type: document.getElementById('contact-type').value,
+          origin: document.getElementById('contact-origin').value.trim(),
+          birth: document.getElementById('contact-birth').value,
+          nif: document.getElementById('contact-nif').value.trim(),
+          idType: document.getElementById('contact-id-type').value,
+          idNum: document.getElementById('contact-id-num').value.trim(),
+          address: document.getElementById('contact-address').value.trim(),
+          numFloor: document.getElementById('contact-num-floor').value.trim(),
+          zip: document.getElementById('contact-zip').value.trim(),
+          city: document.getElementById('contact-city').value.trim(),
+          notes: document.getElementById('contact-notes').value.trim(),
+          createdAt: Date.now()
+        };
+
+        if (currentEditContactId) {
+          await setDoc(doc(db, 'users', currentUser.uid, 'contactos', currentEditContactId), payload, { merge: true });
+        } else {
+          await addDoc(collection(db, 'users', currentUser.uid, 'contactos'), payload);
+        }
+
+        closeModal('modal-contacto');
+        e.target.reset();
+      } catch (err) {
+        alert("Erro ao guardar no Firebase: " + err.message);
+      }
+    };
+
+    window.saveProperty = async (e) => {
+      e.preventDefault();
+      try {
+        const title = document.getElementById('prop-title').value.trim();
+        const price = document.getElementById('prop-price').value;
+        if (!title || !price) return alert("Preencha pelo menos o título e o preço.");
+
+        const imgText = document.getElementById('prop-img-urls').value.trim();
+        const firstImg = imgText ? imgText.split('\n')[0] : 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&q=80';
+
+        await addDoc(collection(db, 'users', currentUser.uid, 'imoveis'), {
+          title: title,
+          price: price,
+          negocio: document.getElementById('prop-negocio').value,
+          tipo: document.getElementById('prop-tipo').value,
+          tipologia: document.getElementById('prop-tipologia').value,
+          areaBruta: document.getElementById('prop-area-bruta').value,
+          areaUtil: document.getElementById('prop-area-util').value,
+          areaTerreno: document.getElementById('prop-area-terreno').value,
+          quartos: document.getElementById('prop-quartos').value,
+          wc: document.getElementById('prop-wc').value,
+          cp: document.getElementById('prop-cp').value,
+          distrito: document.getElementById('prop-distrito').value,
+          concelho: document.getElementById('prop-concelho').value,
+          freguesia: document.getElementById('prop-freguesia').value,
+          bairro: document.getElementById('prop-bairro').value,
+          morada: document.getElementById('prop-morada').value,
+          desc: document.getElementById('prop-desc').value,
+          caracteristicas: document.getElementById('prop-caracteristicas').value,
+          tags: (document.getElementById('prop-tipo').value || 'Casa') + " · " + (document.getElementById('prop-tipologia').value || 'T2'),
+          img: firstImg,
+          createdAt: Date.now()
+        });
+
+        closeModal('modal-imovel');
+        e.target.reset();
+        alert("Imóvel cadastrado com sucesso!");
+      } catch (err) {
+        alert("Erro ao guardar imóvel: " + err.message);
+      }
+    };
+
+    window.saveDeal = async (e) => {
+      e.preventDefault();
+      await addDoc(collection(db, 'users', currentUser.uid, 'pipeline'), {
+        title: document.getElementById('deal-title').value.trim(),
+        contactId: document.getElementById('deal-contact').value,
+        propertyId: document.getElementById('deal-property').value,
+        value: document.getElementById('deal-value').value,
+        stage: document.getElementById('deal-stage').value,
+        createdAt: Date.now()
+      });
+      closeModal('modal-deal');
+      e.target.reset();
+    };
+
+    window.saveTask = async (e) => {
+      e.preventDefault();
+      await addDoc(collection(db, 'users', currentUser.uid, 'tarefas'), {
+        title: document.getElementById('task-title').value.trim(),
+        category: document.getElementById('task-category').value,
+        contactId: document.getElementById('task-contact').value,
+        date: document.getElementById('task-date').value,
+        status: 'Pendente',
+        createdAt: Date.now()
+      });
+      closeModal('modal-task');
+      e.target.reset();
+    };
+
+    window.toggleTaskDone = async (taskId, isChecked) => {
+      await setDoc(doc(db, 'users', currentUser.uid, 'tarefas', taskId), {
+        status: isChecked ? 'Concluída' : 'Pendente'
+      }, { merge: true });
+    };
+
+    window.deleteDocItem = async (col, docId) => {
+      if (confirm('Deseja eliminar este registo?')) {
+        await deleteDoc(doc(db, 'users', currentUser.uid, col, docId));
+      }
+    };
+
+    window.deleteCurrentContact = async () => {
+      if (currentEditContactId) {
+        await deleteDocItem('contactos', currentEditContactId);
+        closeModal('modal-contacto');
+      }
+    };
+
+    /* CONTACT MODAL HELPERS */
+    window.openContactModal = (contactId = null) => {
+      currentEditContactId = contactId;
+      switchContactTab(1);
+
+      if (contactId) {
+        const c = contactsData.find(x => x.id === contactId);
+        document.getElementById('modal-contact-title').innerText = 'Editar contacto';
+        document.getElementById('contact-name').value = c.name || '';
+        document.getElementById('contact-email').value = c.email || '';
+        document.getElementById('contact-phone').value = c.phone || '';
+        document.getElementById('contact-type').value = c.type || 'Comprador';
+        document.getElementById('contact-origin').value = c.origin || '';
+        document.getElementById('contact-birth').value = c.birth || '';
+        document.getElementById('contact-nif').value = c.nif || '';
+        document.getElementById('contact-id-type').value = c.idType || 'Cartão de Cidadão';
+        document.getElementById('contact-id-num').value = c.idNum || '';
+        document.getElementById('contact-address').value = c.address || '';
+        document.getElementById('contact-num-floor').value = c.numFloor || '';
+        document.getElementById('contact-zip').value = c.zip || '';
+        document.getElementById('contact-city').value = c.city || '';
+        document.getElementById('contact-notes').value = c.notes || '';
+      } else {
+        document.getElementById('modal-contact-title').innerText = 'Novo contacto';
+        document.getElementById('form-contacto').reset();
+      }
+
+      document.getElementById('modal-contacto').classList.add('active');
+    };
+
+    window.switchContactTab = (num) => {
+      document.querySelectorAll('#modal-contacto .modal-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('#modal-contacto .tab-content').forEach(c => c.classList.remove('active'));
+
+      document.getElementById(`tab-btn-${num}`).classList.add('active');
+      document.getElementById(`contact-tab-${num}`).classList.add('active');
+    };
+
+    window.switchImovelSubTab = (name) => {
+      document.querySelectorAll('.sub-tabs .sub-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.sub-tab-content').forEach(c => c.classList.remove('active'));
+
+      if (name === 'estruturais') {
+        document.getElementById('imovel-subtab-btn-1').classList.add('active');
+        document.getElementById('imovel-subtab-estruturais').classList.add('active');
+      } else if (name === 'fisicas') {
+        document.getElementById('imovel-subtab-btn-2').classList.add('active');
+        document.getElementById('imovel-subtab-fisicas').classList.add('active');
+      } else {
+        document.getElementById('imovel-subtab-btn-3').classList.add('active');
+        document.getElementById('imovel-subtab-comodidades').classList.add('active');
+      }
+    };
+
+    window.selectPill = (el) => {
+      el.parentElement.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
+      el.classList.add('active');
+    };
+
+    window.toggleMultiPill = (el) => {
+      el.classList.toggle('active');
+    };
+
+    window.switchPage = (pageId, element) => {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+
+      document.getElementById(pageId).classList.add('active');
+      if (element) element.classList.add('active');
+
+      const pageTitles = {
+        'page-dashboard': 'Dashboard',
+        'page-contactos': 'Contactos',
+        'page-imoveis': 'Dashboard de Imóveis',
+        'page-detalhe-imovel': 'Detalhes do Imóvel',
+        'page-pipeline': 'Pipeline',
+        'page-tarefas': 'Tarefas',
+        'page-configuracoes': 'Configurações'
+      };
+      document.getElementById('page-header-title').innerText = pageTitles[pageId] || 'Imovio';
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebar-overlay').classList.remove('open');
+    };
+
+    window.toggleSidebar = () => {
+      document.getElementById('sidebar').classList.toggle('open');
+      document.getElementById('sidebar-overlay').classList.toggle('open');
+    };
+
+    window.openPropertyModal = () => document.getElementById('modal-imovel').classList.add('active');
+    window.openDealModal = () => document.getElementById('modal-deal').classList.add('active');
+    window.openTaskModal = () => document.getElementById('modal-task').classList.add('active');
+    window.closeModal = (id) => document.getElementById(id).classList.remove('active');
+
+    window.handleGlobalSearch = (query) => {
+      const q = query.toLowerCase();
+      if (!q) { renderContacts(); return; }
+      const filtered = contactsData.filter(c => c.name.toLowerCase().includes(q) || (c.email && c.email.toLowerCase().includes(q)));
+      renderContacts(filtered);
+    };
+  </script>
+</body>
+</html>
