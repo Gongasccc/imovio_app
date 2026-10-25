@@ -6,6 +6,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:imovio/src/features/market_study/domain/comparable_listing.dart';
 import 'package:imovio/src/features/market_study/domain/market_study.dart';
+import 'package:imovio/src/features/properties/domain/property.dart';
 import 'package:imovio/src/utils/format.dart';
 
 /// Relatório em PDF do estudo de mercado, com a estrutura habitual dos
@@ -44,7 +45,11 @@ class MarketStudyPdf {
   }) async {
     final theme = await _theme();
     final p = study.subject.property;
-    final cover = await _image(p.images.firstOrNull);
+    // A foto genérica da app não entra no relatório.
+    final photo = p.images.firstOrNull;
+    final cover = await _image(
+      photo == PropertyOptions.defaultImage ? null : photo,
+    );
     final doc = pw.Document(
       title: 'Estudo de Mercado - ${p.title}',
       author: consultant,
