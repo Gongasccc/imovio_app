@@ -112,17 +112,36 @@ class SaleSummaryCard extends StatelessWidget {
                   : '${Format.euros(-discount)} acima do anunciado',
             ),
             const Divider(height: 20),
+            if (s.isShared)
+              row(
+                'Comissão total (partilha)',
+                Format.eurosWithCents(s.totalCommission),
+                note: s.commissionPct == null
+                    ? 'Indique a comissão (%)'
+                    : '${Format.number(s.commissionPct)} % do valor de venda',
+              ),
             row(
               'Comissão da agência',
               Format.eurosWithCents(s.agencyCommission),
-              note: s.commissionPct == null
+              note: s.isShared
+                  ? '${Format.number(s.sharePct)} % da comissão (partilha)'
+                  : s.commissionPct == null
                   ? 'Indique a comissão (%)'
-                  : '${Format.number(s.commissionPct)} % do valor de venda',
+                  : '${Format.number(s.commissionPct)} % do valor de venda, '
+                        'sem IVA',
+            ),
+            row(
+              'IVA da comissão',
+              '+ ${Format.eurosWithCents(s.vat)}',
+              note:
+                  '${Format.number(s.vatPct)} % · total a faturar '
+                  '${Format.eurosWithCents(s.agencyCommissionWithVat)}',
             ),
             row(
               'A sua parte',
               Format.eurosWithCents(s.agentShare),
-              note: '${Format.number(s.agentSplitPct)} % da comissão',
+              note:
+                  '${Format.number(s.agentSplitPct)} % da comissão sem IVA',
             ),
             row(
               'Despesas do imóvel',

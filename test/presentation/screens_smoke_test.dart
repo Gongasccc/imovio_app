@@ -276,7 +276,7 @@ void main() {
     await tester.tap(find.text('3. Detalhes de Venda'));
     await tester.pumpAndSettle();
     await tester.enterText(
-        find.widgetWithText(TextFormField, 'Comissão da agência'), '4');
+        find.widgetWithText(TextFormField, 'Comissão'), '4');
     await tester.pump();
     expect(find.text('9960.00'), findsOneWidget);
   });

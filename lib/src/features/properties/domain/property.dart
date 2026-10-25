@@ -13,6 +13,18 @@ class PropertyOptions {
     'CPCV Assinado',
     'Vendido',
   ];
+  static const contractTypes = [
+    'Exclusividade',
+    'Não exclusividade',
+    'Sem contrato',
+  ];
+  static const saleModes = ['Pleno', 'Partilha'];
+  static const saleModeLabels = {
+    'Pleno': 'Pleno (só a nossa agência)',
+    'Partilha': 'Partilha (com outra agência)',
+  };
+  static const defaultVatPct = 23;
+  static const defaultSharePct = 50;
   static const saleStatusLabels = {
     'Em Angariação': 'Em Angariação / Ativo',
     'Reservado': 'Reservado',
@@ -53,6 +65,10 @@ class Property extends Equatable {
     this.commissionPct,
     this.commissionVal,
     this.agentSplitPct,
+    this.contractType,
+    this.saleMode,
+    this.sharePct,
+    this.vatPct,
     this.dateStart,
     this.dateEnd,
     this.saleNotes,
@@ -100,6 +116,20 @@ class Property extends Equatable {
 
   /// A parte da comissão que fica para o consultor, em %.
   final num? agentSplitPct;
+
+  /// Contrato de mediação: exclusividade, não exclusividade ou sem contrato.
+  final String? contractType;
+
+  /// 'Pleno' (comissão toda da agência) ou 'Partilha' (dividida com outra).
+  final String? saleMode;
+
+  /// Na partilha, a % da comissão que fica para a nossa agência.
+  final num? sharePct;
+
+  /// IVA sobre a comissão (%). Vazio = 23 %.
+  final num? vatPct;
+
+  bool get isShared => saleMode == 'Partilha';
   final String? dateStart;
   final String? dateEnd;
   final String? saleNotes;
@@ -155,6 +185,10 @@ class Property extends Equatable {
       commissionPct: parseNum(data['commissionPct']),
       commissionVal: parseNum(data['commissionVal']),
       agentSplitPct: parseNum(data['agentSplitPct']),
+      contractType: s('contractType'),
+      saleMode: s('saleMode'),
+      sharePct: parseNum(data['sharePct']),
+      vatPct: parseNum(data['vatPct']),
       dateStart: s('dateStart'),
       dateEnd: s('dateEnd'),
       saleNotes: s('saleNotes'),
@@ -191,6 +225,10 @@ class Property extends Equatable {
     'commissionPct': commissionPct,
     'commissionVal': commissionVal,
     'agentSplitPct': agentSplitPct,
+    'contractType': contractType ?? '',
+    'saleMode': saleMode ?? '',
+    'sharePct': sharePct,
+    'vatPct': vatPct,
     'dateStart': dateStart ?? '',
     'dateEnd': dateEnd ?? '',
     'saleNotes': saleNotes ?? '',
@@ -225,6 +263,10 @@ class Property extends Equatable {
     commissionPct: commissionPct,
     commissionVal: commissionVal,
     agentSplitPct: agentSplitPct,
+    contractType: contractType,
+    saleMode: saleMode,
+    sharePct: sharePct,
+    vatPct: vatPct,
     dateStart: dateStart,
     dateEnd: dateEnd,
     saleNotes: saleNotes,

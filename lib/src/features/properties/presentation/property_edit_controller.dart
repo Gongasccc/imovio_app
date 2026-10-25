@@ -1,6 +1,8 @@
 import 'package:image_picker/image_picker.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:imovio/src/features/authentication/data/firebase_auth_repository.dart';
+import 'package:imovio/src/features/geo/data/geo_repository.dart';
+import 'package:imovio/src/features/geo/domain/geo_data.dart';
 import 'package:imovio/src/features/properties/application/listing_import_service.dart';
 import 'package:imovio/src/features/properties/data/properties_repository.dart';
 import 'package:imovio/src/features/properties/domain/property.dart';
@@ -74,8 +76,12 @@ class ListingImportController extends _$ListingImportController {
 
   Future<ImportedListing?> extract(String url) async {
     state = const AsyncLoading();
-    final result = await AsyncValue.guard(
-        () => ref.read(listingImportServiceProvider).extract(url));
+    final result = await AsyncValue.guard(() async {
+      // Sem a lista de concelhos a importação funciona na mesma.
+      final geo = await ref.read(geoDataProvider.future).catchError(
+          (Object _) => GeoData(const {}));
+      return ref.read(listingImportServiceProvider).extract(url, geo: geo);
+    });
     if (ref.mounted) state = result;
     return result.value;
   }
