@@ -15,6 +15,7 @@ import 'package:imovio/src/features/properties/presentation/property_detail_scre
 import 'package:imovio/src/features/properties/presentation/property_new_screen.dart';
 import 'package:imovio/src/features/settings/presentation/settings_screen.dart';
 import 'package:imovio/src/features/tasks/presentation/task_edit_screen.dart';
+import 'package:imovio/src/features/team/presentation/team_screen.dart';
 import 'package:imovio/src/features/tasks/presentation/tasks_screen.dart';
 import 'package:imovio/src/routing/go_router_refresh_stream.dart';
 import 'package:imovio/src/routing/not_found_screen.dart';
@@ -48,6 +49,7 @@ enum AppRoute {
   newTask,
   task,
   settings,
+  team,
 }
 
 const _protectedPrefixes = [
@@ -57,6 +59,7 @@ const _protectedPrefixes = [
   '/pipeline',
   '/tasks',
   '/settings',
+  '/team',
 ];
 
 /// Ecrã de edição em modo diálogo (ecrã inteiro), acima da navegação.
@@ -93,6 +96,12 @@ GoRouter goRouter(Ref ref) {
         name: AppRoute.settings.name,
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/team',
+        name: AppRoute.team.name,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const TeamScreen(),
       ),
       StatefulShellRoute.indexedStack(
         pageBuilder: (context, state, navigationShell) => NoTransitionPage(

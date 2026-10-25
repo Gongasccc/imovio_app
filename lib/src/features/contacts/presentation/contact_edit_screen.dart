@@ -19,6 +19,7 @@ import 'package:imovio/src/features/properties/data/properties_repository.dart';
 import 'package:imovio/src/features/properties/presentation/property_list_tile.dart';
 import 'package:imovio/src/features/tasks/data/tasks_repository.dart';
 import 'package:imovio/src/features/tasks/presentation/task_tile.dart';
+import 'package:imovio/src/features/team/presentation/team_listing_tile.dart';
 import 'package:imovio/src/routing/app_router.dart';
 import 'package:imovio/src/utils/async_value_ui.dart';
 import 'package:imovio/src/utils/dialogs.dart';
@@ -365,6 +366,8 @@ class _ContactFormState extends ConsumerState<_ContactForm>
             );
           },
         ),
+        if (widget.contact != null)
+          TeamMatchesSection(contact: widget.contact!),
       ],
     );
   }
