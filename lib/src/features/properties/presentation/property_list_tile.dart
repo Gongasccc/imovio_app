@@ -60,6 +60,9 @@ class PropertyImage extends StatelessWidget {
       width: width,
       height: height,
       fit: BoxFit.cover,
+      // Na web, fotos de sites sem CORS (portais de anúncios) aparecem
+      // através de um elemento <img> em vez de falharem.
+      webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
       loadingBuilder: (context, child, progress) =>
           progress == null ? child : placeholder(Icons.image_outlined),
       errorBuilder: (_, _, _) => placeholder(Icons.broken_image_outlined),

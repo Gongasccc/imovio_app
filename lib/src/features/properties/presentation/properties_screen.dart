@@ -139,7 +139,7 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                       gridDelegate:
                           const SliverGridDelegateWithMaxCrossAxisExtent(
                         maxCrossAxisExtent: 340,
-                        mainAxisExtent: 330,
+                        mainAxisExtent: 345,
                         crossAxisSpacing: Sizes.p16,
                         mainAxisSpacing: Sizes.p16,
                       ),
@@ -212,7 +212,7 @@ class _PropertyCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SizedBox(
-              height: 170,
+              height: 160,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -262,16 +262,21 @@ class _PropertyCard extends ConsumerWidget {
                         style: const TextStyle(fontWeight: FontWeight.w600)),
                     gapH4,
                     Text('${p.tags} • ${p.concelho ?? 'Local'}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                             fontSize: 12, color: scheme.onSurfaceVariant)),
                     gapH8,
                     Text(Format.euros(p.price),
+                        maxLines: 1,
                         style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
                             color: scheme.primary)),
                     if (meta.isNotEmpty)
                       Text(meta,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                               fontSize: 12, color: scheme.onSurfaceVariant)),
                     const Spacer(),

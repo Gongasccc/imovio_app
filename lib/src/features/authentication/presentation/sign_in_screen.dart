@@ -52,12 +52,13 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(Sizes.p24),
+          padding: const EdgeInsets.all(Sizes.p16),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
             child: Card(
               child: Padding(
-                padding: const EdgeInsets.all(Sizes.p32),
+                padding: EdgeInsets.all(
+                    MediaQuery.sizeOf(context).width < 480 ? Sizes.p20 : Sizes.p32),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -83,6 +84,11 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                         ],
                         selected: {_mode},
                         showSelectedIcon: false,
+                        style: SegmentedButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          textStyle: const TextStyle(fontSize: 12.5),
+                        ),
                         onSelectionChanged: (s) => _setMode(s.first),
                       ),
                       gapH24,
