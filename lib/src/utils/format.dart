@@ -20,6 +20,22 @@ class Format {
   static String eurosWithCents(num? value) =>
       value == null ? '—' : _euroCents.format(value);
 
+  /// 85.5 → "85,5"; 1234 → "1234".
+  static String number(num? value) => value == null
+      ? '—'
+      : NumberFormat.decimalPatternDigits(locale: 'pt_PT', decimalDigits: 1)
+          .format(value)
+          .replaceAll(RegExp(r',0$'), '');
+
+  /// 0.052 → "+5,2 %" (com sinal) ou "5,2 %".
+  static String percent(num? value, {bool signed = false, int decimals = 1}) {
+    if (value == null) return '—';
+    final text = NumberFormat.decimalPatternDigits(
+            locale: 'pt_PT', decimalDigits: decimals)
+        .format(value * 100);
+    return '${signed && value > 0 ? '+' : ''}$text %';
+  }
+
   static String date(DateTime? date) => date == null ? '—' : _date.format(date);
 
   static String dateTime(DateTime? date) =>

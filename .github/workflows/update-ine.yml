@@ -1,0 +1,35 @@
+name: Atualizar preços do INE
+
+# O INE publica os preços trimestrais por concelho; verificamos uma vez por
+# mês e, se houver dados novos, guardamos e voltamos a publicar a app.
+on:
+  schedule:
+    - cron: '0 6 5 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      - run: dart run tool/update_ine.dart
+      - name: Guardar e publicar se mudou
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet -- assets/market/ine_precos.json; then
+            echo "Sem dados novos do INE."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/market/ine_precos.json
+          git commit -m "Atualizar preços do INE"
+          git push
+          # Um push feito com o GITHUB_TOKEN não dispara outros workflows.
+          gh workflow run deploy-pages.yml --ref main

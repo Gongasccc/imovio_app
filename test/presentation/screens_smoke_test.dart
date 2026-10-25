@@ -17,6 +17,11 @@ import 'package:imovio/src/features/contacts/domain/contact.dart';
 import 'package:imovio/src/features/contacts/presentation/contact_edit_screen.dart';
 import 'package:imovio/src/features/contacts/presentation/contacts_screen.dart';
 import 'package:imovio/src/features/dashboard/presentation/dashboard_screen.dart';
+import 'package:imovio/src/features/market_study/data/market_study_repository.dart';
+import 'package:imovio/src/features/market_study/domain/comparable_listing.dart';
+import 'package:imovio/src/features/market_study/domain/ine_prices.dart';
+import 'package:imovio/src/features/market_study/domain/study_settings.dart';
+import 'package:imovio/src/features/market_study/presentation/market_study_screen.dart';
 import 'package:imovio/src/features/pipeline/data/deals_repository.dart';
 import 'package:imovio/src/features/pipeline/domain/deal.dart';
 import 'package:imovio/src/features/pipeline/presentation/deal_edit_screen.dart';
@@ -95,6 +100,32 @@ final _tasks = [
   const Task(id: 't3', title: 'Ligar ao banco', status: TaskStatuses.done),
 ];
 
+final _comparables = [
+  const ComparableListing(
+    id: 'k1',
+    title: 'T2 Corroios com garagem',
+    price: 240000,
+    area: 82,
+    negocio: 'Venda',
+    tipo: 'Apartamento',
+    tipologia: 'T2',
+    concelho: 'Almada',
+    garage: true,
+    sourceUrl: 'https://example.com/k1',
+  ),
+  const ComparableListing(
+    id: 'k2',
+    title: 'T2 Laranjeiro',
+    price: 215000,
+    area: 78,
+    negocio: 'Venda',
+    tipo: 'Apartamento',
+    tipologia: 'T2',
+    concelho: 'Almada',
+    source: ComparableSource.venda,
+  ),
+];
+
 late SharedPreferences _prefs;
 
 Widget _app(Widget child) => ProviderScope(
@@ -110,6 +141,22 @@ Widget _app(Widget child) => ProviderScope(
             .overrideWith((ref) => Stream.value(_properties.first)),
         dealsStreamProvider.overrideWith((ref) => Stream.value(_deals)),
         tasksStreamProvider.overrideWith((ref) => Stream.value(_tasks)),
+        comparablesStreamProvider
+            .overrideWith((ref) => Stream.value(_comparables)),
+        studySettingsStreamProvider('p1')
+            .overrideWith((ref) => Stream.value(const StudySettings())),
+        inePricesProvider.overrideWith((ref) async => InePrices(
+              period: '2.º Trimestre de 2026',
+              previousPeriod: '2.º Trimestre de 2025',
+              source: 'INE',
+              regions: const [
+                IneRegion(
+                    code: '1701503',
+                    name: 'Almada',
+                    m2: 2900,
+                    m2PreviousYear: 2600),
+              ],
+            )),
       ],
       child: MaterialApp(
         theme: ThemeData.dark(useMaterial3: true),
@@ -139,6 +186,7 @@ void main() {
     'novo contacto': const ContactEditScreen(),
     'imóveis': const PropertiesScreen(),
     'detalhe do imóvel': const PropertyDetailScreen(propertyId: 'p1'),
+    'estudo de mercado': const MarketStudyScreen(propertyId: 'p1'),
     'pipeline': const PipelineScreen(),
     'editar negócio': const DealEditScreen(dealId: 'd1'),
     'tarefas': const TasksScreen(),
@@ -174,6 +222,21 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Visita ao T2'), findsOneWidget);
     expect(find.textContaining('Charneca'), findsOneWidget);
+  });
+
+  testWidgets('estudo de mercado calcula o valor com os comparáveis',
+      (tester) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(_app(const MarketStudyScreen(propertyId: 'p1')));
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    expect(find.text('Valor de mercado provável'), findsOneWidget);
+    expect(find.text('2 comparáveis'), findsOneWidget);
+    expect(find.text('T2 Laranjeiro'), findsOneWidget);
+    expect(find.textContaining('Concelho: Almada'), findsOneWidget);
   });
 
   testWidgets('dashboard mostra KPIs e lembrete em atraso', (tester) async {

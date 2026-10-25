@@ -6,6 +6,8 @@ import 'package:imovio/src/features/authentication/presentation/sign_in_screen.d
 import 'package:imovio/src/features/contacts/presentation/contact_edit_screen.dart';
 import 'package:imovio/src/features/contacts/presentation/contacts_screen.dart';
 import 'package:imovio/src/features/dashboard/presentation/dashboard_screen.dart';
+import 'package:imovio/src/features/market_study/presentation/market_study_pdf_screen.dart';
+import 'package:imovio/src/features/market_study/presentation/market_study_screen.dart';
 import 'package:imovio/src/features/pipeline/presentation/deal_edit_screen.dart';
 import 'package:imovio/src/features/pipeline/presentation/pipeline_screen.dart';
 import 'package:imovio/src/features/properties/presentation/properties_screen.dart';
@@ -37,6 +39,8 @@ enum AppRoute {
   properties,
   newProperty,
   property,
+  marketStudy,
+  marketStudyPdf,
   pipeline,
   newDeal,
   deal,
@@ -157,6 +161,26 @@ GoRouter goRouter(Ref ref) {
                     builder: (context, state) => PropertyDetailScreen(
                       propertyId: state.pathParameters['id']!,
                     ),
+                    routes: [
+                      GoRoute(
+                        path: 'estudo',
+                        name: AppRoute.marketStudy.name,
+                        parentNavigatorKey: _rootNavigatorKey,
+                        builder: (context, state) => MarketStudyScreen(
+                          propertyId: state.pathParameters['id']!,
+                        ),
+                        routes: [
+                          GoRoute(
+                            path: 'pdf',
+                            name: AppRoute.marketStudyPdf.name,
+                            parentNavigatorKey: _rootNavigatorKey,
+                            builder: (context, state) => MarketStudyPdfScreen(
+                              propertyId: state.pathParameters['id']!,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ],
               ),

@@ -145,6 +145,14 @@ class _PropertyDetailState extends ConsumerState<_PropertyDetail>
               expandedHeight: 260,
               title: Text(p.title, maxLines: 1, overflow: TextOverflow.ellipsis),
               actions: [
+                IconButton(
+                  tooltip: 'Estudo de mercado',
+                  icon: const Icon(Icons.query_stats),
+                  onPressed: () => context.pushNamed(
+                    AppRoute.marketStudy.name,
+                    pathParameters: {'id': p.id},
+                  ),
+                ),
                 if (p.sourceUrl != null)
                   IconButton(
                     tooltip: 'Fonte original',
@@ -220,6 +228,15 @@ class _PropertyDetailState extends ConsumerState<_PropertyDetail>
               _tab(Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  FilledButton.tonalIcon(
+                    icon: const Icon(Icons.query_stats),
+                    label: const Text('Estudo de Mercado (PDF)'),
+                    onPressed: () => context.pushNamed(
+                      AppRoute.marketStudy.name,
+                      pathParameters: {'id': p.id},
+                    ),
+                  ),
+                  gapH16,
                   SectionCard(
                     title: 'Caracterização',
                     icon: Icons.home_outlined,

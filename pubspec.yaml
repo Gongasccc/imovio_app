@@ -53,6 +53,8 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   shared_preferences: ^2.5.6
+  pdf: ^3.13.1
+  printing: ^5.15.1
 
 dev_dependencies:
   flutter_test:
@@ -78,6 +80,10 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - assets/market/
+    - assets/fonts/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
