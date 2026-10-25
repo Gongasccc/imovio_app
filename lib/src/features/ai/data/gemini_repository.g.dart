@@ -131,12 +131,51 @@ final class GeminiHttpClientProvider
 
 String _$geminiHttpClientHash() => r'00d9e81f1724f4a772e546edd0106c9865abdbd2';
 
-/// Cliente pronto a usar, ou null se o utilizador ainda não pôs a chave.
+/// A chave a usar: a do próprio utilizador ou, se não tiver, a da equipa.
+
+@ProviderFor(effectiveGeminiKey)
+final effectiveGeminiKeyProvider = EffectiveGeminiKeyProvider._();
+
+/// A chave a usar: a do próprio utilizador ou, se não tiver, a da equipa.
+
+final class EffectiveGeminiKeyProvider
+    extends $FunctionalProvider<AsyncValue<String?>, String?, FutureOr<String?>>
+    with $FutureModifier<String?>, $FutureProvider<String?> {
+  /// A chave a usar: a do próprio utilizador ou, se não tiver, a da equipa.
+  EffectiveGeminiKeyProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'effectiveGeminiKeyProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$effectiveGeminiKeyHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<String?> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<String?> create(Ref ref) {
+    return effectiveGeminiKey(ref);
+  }
+}
+
+String _$effectiveGeminiKeyHash() =>
+    r'db7bd4f8e807ec4a7ac8c2187791a43085a1b975';
+
+/// Cliente pronto a usar, ou null se não houver chave (própria ou da equipa).
 
 @ProviderFor(geminiClient)
 final geminiClientProvider = GeminiClientProvider._();
 
-/// Cliente pronto a usar, ou null se o utilizador ainda não pôs a chave.
+/// Cliente pronto a usar, ou null se não houver chave (própria ou da equipa).
 
 final class GeminiClientProvider
     extends
@@ -146,7 +185,7 @@ final class GeminiClientProvider
           FutureOr<GeminiClient?>
         >
     with $FutureModifier<GeminiClient?>, $FutureProvider<GeminiClient?> {
-  /// Cliente pronto a usar, ou null se o utilizador ainda não pôs a chave.
+  /// Cliente pronto a usar, ou null se não houver chave (própria ou da equipa).
   GeminiClientProvider._()
     : super(
         from: null,
@@ -173,4 +212,4 @@ final class GeminiClientProvider
   }
 }
 
-String _$geminiClientHash() => r'5e8330aea8a7f27e37382cdf7f7e644fefe335ae';
+String _$geminiClientHash() => r'87e04a594e45995c2f25ea5b79c5d005abfe5819';

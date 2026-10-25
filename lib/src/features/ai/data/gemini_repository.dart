@@ -5,6 +5,7 @@ import 'package:imovio/src/features/ai/data/gemini_client.dart';
 import 'package:imovio/src/features/authentication/data/firebase_auth_repository.dart';
 import 'package:imovio/src/features/authentication/domain/app_user.dart';
 import 'package:imovio/src/features/settings/data/settings_repository.dart';
+import 'package:imovio/src/features/team/data/team_repository.dart';
 
 part 'gemini_repository.g.dart';
 
@@ -45,10 +46,18 @@ http.Client geminiHttpClient(Ref ref) {
   return client;
 }
 
-/// Cliente pronto a usar, ou null se o utilizador ainda não pôs a chave.
+/// A chave a usar: a do próprio utilizador ou, se não tiver, a da equipa.
+@riverpod
+Future<String?> effectiveGeminiKey(Ref ref) async {
+  final own = await ref.watch(geminiKeyProvider.future);
+  if (own != null) return own;
+  return ref.watch(teamGeminiKeyProvider.future);
+}
+
+/// Cliente pronto a usar, ou null se não houver chave (própria ou da equipa).
 @riverpod
 Future<GeminiClient?> geminiClient(Ref ref) async {
-  final key = await ref.watch(geminiKeyProvider.future);
+  final key = await ref.watch(effectiveGeminiKeyProvider.future);
   if (key == null) return null;
   return GeminiClient(ref.watch(geminiHttpClientProvider), key);
 }

@@ -293,3 +293,41 @@ final class AfilhadoPctsStreamProvider
 
 String _$afilhadoPctsStreamHash() =>
     r'7f78c38856e0796960c8b144d3888956852d7fc3';
+
+/// Chave do Gemini partilhada pela equipa, ou null.
+
+@ProviderFor(teamGeminiKey)
+final teamGeminiKeyProvider = TeamGeminiKeyProvider._();
+
+/// Chave do Gemini partilhada pela equipa, ou null.
+
+final class TeamGeminiKeyProvider
+    extends $FunctionalProvider<AsyncValue<String?>, String?, Stream<String?>>
+    with $FutureModifier<String?>, $StreamProvider<String?> {
+  /// Chave do Gemini partilhada pela equipa, ou null.
+  TeamGeminiKeyProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'teamGeminiKeyProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$teamGeminiKeyHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<String?> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<String?> create(Ref ref) {
+    return teamGeminiKey(ref);
+  }
+}
+
+String _$teamGeminiKeyHash() => r'9ef3005b264835daa862fd8348cd7f35f767d78a';

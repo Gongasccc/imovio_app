@@ -48,6 +48,12 @@ service cloud.firestore {
           && (request.auth.uid == uid || team().ownerUid == request.auth.uid);
       }
 
+      // Chave do Gemini partilhada: os membros leem, só o criador muda.
+      match /secrets/{doc} {
+        allow read: if isMember();
+        allow write: if signedIn() && team().ownerUid == request.auth.uid;
+      }
+
       // Cópia pública dos imóveis: todos os membros leem, cada um escreve os seus.
       match /listings/{id} {
         allow read: if isMember();

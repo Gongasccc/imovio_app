@@ -313,6 +313,8 @@ class _MembersTab extends ConsumerWidget {
             ),
           ),
         gapH16,
+        _TeamAiKeyCard(team: team, isOwner: team.ownerUid == uid),
+        gapH16,
         SectionCard(
           title: 'Membros (${members.length})',
           icon: Icons.groups_outlined,
@@ -569,6 +571,98 @@ class _SharingTab extends ConsumerWidget {
                         : [...hidden, p.id],
                   ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Chave do Gemini da equipa: o criador põe-na uma vez e quem não tem chave
+/// própria passa a usá-la.
+class _TeamAiKeyCard extends ConsumerStatefulWidget {
+  const _TeamAiKeyCard({required this.team, required this.isOwner});
+  final Team team;
+  final bool isOwner;
+
+  @override
+  ConsumerState<_TeamAiKeyCard> createState() => _TeamAiKeyCardState();
+}
+
+class _TeamAiKeyCardState extends ConsumerState<_TeamAiKeyCard> {
+  final _key = TextEditingController();
+
+  @override
+  void dispose() {
+    _key.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save(String? key) async {
+    final ok = await runAction(
+      context,
+      () => ref
+          .read(teamRepositoryProvider)
+          .setTeamGeminiKey(teamId: widget.team.id, key: key),
+      success: key == null ? 'Chave da equipa removida' : 'Chave guardada',
+    );
+    if (ok) _key.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasKey = ref.watch(teamGeminiKeyProvider).value != null;
+    final muted = TextStyle(
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    );
+    return SectionCard(
+      title: 'Gemini da equipa',
+      icon: hasKey ? Icons.key : Icons.key_off_outlined,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            hasKey
+                ? 'A equipa tem uma chave do Gemini. Quem não tiver chave '
+                      'própria usa esta no estudo de mercado e na importação.'
+                : 'Ainda sem chave da equipa.',
+          ),
+          if (widget.isOwner) ...[
+            gapH8,
+            Text(
+              'A quota grátis é partilhada por todos os membros, e qualquer '
+              'membro consegue ver a chave. Para a trocar, crie outra no '
+              'Google AI Studio e cole-a aqui.',
+              style: muted,
+            ),
+            gapH16,
+            TextField(
+              controller: _key,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: hasKey ? 'Nova chave' : 'Chave do Gemini',
+                hintText: 'AIza...',
+              ),
+            ),
+            gapH16,
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: Sizes.p8,
+              children: [
+                if (hasKey)
+                  TextButton(
+                    onPressed: () => _save(null),
+                    child: const Text('Remover'),
+                  ),
+                FilledButton(
+                  onPressed: () {
+                    final key = emptyToNull(_key.text.trim());
+                    if (key != null) _save(key);
+                  },
+                  child: const Text('Guardar chave'),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

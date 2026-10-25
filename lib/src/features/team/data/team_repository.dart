@@ -31,6 +31,7 @@ class TeamRepository {
   static String membersPath(TeamID id) => 'teams/$id/members';
   static String listingsPath(TeamID id) => 'teams/$id/listings';
   static String salesPath(TeamID id) => 'teams/$id/sales';
+  static String aiKeyPath(TeamID id) => 'teams/$id/secrets/ia';
 
   // Sem letras e números que se confundem (O/0, I/1).
   static const _codeChars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -98,6 +99,19 @@ class TeamRepository {
     final doc = _firestore.doc('${afilhadoPctsPath(uid)}/$afilhadoUid');
     return pct == null ? doc.delete() : doc.set({'pct': pct});
   }
+
+  /// Chave do Gemini da equipa: só os membros a leem, só o criador a muda.
+  Stream<String?> watchTeamGeminiKey({required TeamID teamId}) =>
+      _firestore.doc(aiKeyPath(teamId)).snapshots().map(
+        (s) => emptyToNull(s.data()?['geminiKey']?.toString().trim()),
+      );
+
+  Future<void> setTeamGeminiKey({
+    required TeamID teamId,
+    required String? key,
+  }) => _firestore.doc(aiKeyPath(teamId)).set({
+    'geminiKey': key?.trim() ?? '',
+  });
 
   Future<void> createTeam({
     required UserID uid,
@@ -274,4 +288,20 @@ Stream<List<AfilhadoSale>> sponsorSalesStream(Ref ref) {
 Stream<Map<UserID, num>> afilhadoPctsStream(Ref ref) {
   final uid = ref.watch(currentUidProvider);
   return ref.watch(teamRepositoryProvider).watchAfilhadoPcts(uid: uid);
+}
+
+/// Chave do Gemini partilhada pela equipa, ou null.
+@riverpod
+Stream<String?> teamGeminiKey(Ref ref) async* {
+  final membership = await ref.watch(membershipStreamProvider.future);
+  final teamId = membership.teamId;
+  if (teamId == null) {
+    yield null;
+    return;
+  }
+  // Sem regras publicadas ou fora da equipa: simplesmente não há chave.
+  yield* ref
+      .watch(teamRepositoryProvider)
+      .watchTeamGeminiKey(teamId: teamId)
+      .handleError((Object _) {});
 }

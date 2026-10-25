@@ -1,7 +1,10 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:imovio/src/features/ai/data/gemini_repository.dart';
 import 'package:imovio/src/features/properties/domain/property.dart';
 import 'package:imovio/src/features/team/application/sponsor_earnings.dart';
 import 'package:imovio/src/features/team/application/team_sync.dart';
+import 'package:imovio/src/features/team/data/team_repository.dart';
 import 'package:imovio/src/features/team/domain/afilhado_sale.dart';
 import 'package:imovio/src/features/team/domain/team.dart';
 import 'package:imovio/src/features/team/domain/team_listing.dart';
@@ -108,12 +111,18 @@ void main() {
     test('só escreve o que mudou e apaga o que desapareceu', () {
       final plan = planSync(
         {
-          'a': {'price': 5.0, 'images': ['x']},
+          'a': {
+            'price': 5.0,
+            'images': ['x'],
+          },
           'b': {'price': 1},
           'c': {'price': 1},
         },
         {
-          'a': {'images': ['x'], 'price': 5},
+          'a': {
+            'images': ['x'],
+            'price': 5,
+          },
           'b': {'price': 2},
           'd': {'price': 3},
         },
@@ -212,6 +221,35 @@ void main() {
         pcts: const {},
       );
       expect(earnings.afilhados.single.afilhadoName, 'Ana');
+    });
+  });
+
+  group('chave do Gemini da equipa', () {
+    Future<String?> effective({String? own, String? team}) async {
+      final container = ProviderContainer(
+        overrides: [
+          geminiKeyProvider.overrideWith((ref) => Stream.value(own)),
+          teamGeminiKeyProvider.overrideWith((ref) => Stream.value(team)),
+        ],
+      );
+      addTearDown(container.dispose);
+      final sub = container.listen(
+        effectiveGeminiKeyProvider.future,
+        (_, _) {},
+      );
+      return sub.read();
+    }
+
+    test('sem chave própria usa a da equipa', () async {
+      expect(await effective(team: 'equipa'), 'equipa');
+    });
+
+    test('a chave própria tem prioridade', () async {
+      expect(await effective(own: 'minha', team: 'equipa'), 'minha');
+    });
+
+    test('sem nenhuma, não há cliente', () async {
+      expect(await effective(), isNull);
     });
   });
 }

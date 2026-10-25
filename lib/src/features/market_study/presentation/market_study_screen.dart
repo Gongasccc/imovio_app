@@ -41,7 +41,7 @@ class MarketStudyScreen extends ConsumerWidget {
           IconButton(
             tooltip: 'Ligar o Gemini',
             icon: Icon(
-              ref.watch(geminiKeyProvider).value == null
+              ref.watch(effectiveGeminiKeyProvider).value == null
                   ? Icons.key_off_outlined
                   : Icons.key,
             ),
@@ -851,7 +851,7 @@ class _NotesCardState extends State<_NotesCard> {
 
 /// Garante que há chave do Gemini, pedindo-a se for preciso.
 Future<bool> _ensureGemini(BuildContext context, WidgetRef ref) async {
-  if (await ref.read(geminiKeyProvider.future) != null) return true;
+  if (await ref.read(effectiveGeminiKeyProvider.future) != null) return true;
   if (!context.mounted) return false;
   return showGeminiKeyDialog(context);
 }
