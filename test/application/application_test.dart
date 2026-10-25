@@ -3,7 +3,9 @@ import 'package:imovio/src/features/contacts/application/contacts_csv.dart';
 import 'package:imovio/src/features/contacts/domain/contact.dart';
 import 'package:imovio/src/features/dashboard/application/dashboard_service.dart';
 import 'package:imovio/src/features/pipeline/domain/deal.dart';
+import 'package:imovio/src/features/expenses/domain/expense.dart';
 import 'package:imovio/src/features/properties/application/commission.dart';
+import 'package:imovio/src/features/properties/application/sale_summary.dart';
 import 'package:imovio/src/features/properties/application/listing_parser.dart';
 import 'package:imovio/src/features/properties/application/property_matching.dart';
 import 'package:imovio/src/features/properties/domain/property.dart';
@@ -179,5 +181,44 @@ void main() {
     final lines = csv.trim().split('\n');
     expect(lines.first, startsWith('Nome,Email,Telefone,Tipo,Origem,Morada'));
     expect(lines[1], startsWith('"Rui ""Zé"" Silva","rui@x.pt"'));
+  });
+
+  group('resumo de venda', () {
+    const sold = Property(
+      id: 'p',
+      title: 'T3',
+      price: 320000,
+      salePrice: 305000,
+      commissionPct: 5,
+      agentSplitPct: 60,
+      saleStatus: 'Vendido',
+      dateStart: '2026-05-10',
+      dateEnd: '2026-09-28',
+    );
+    final expenses = [
+      const Expense(id: '1', propertyId: 'p', description: 'Fotos', amount: 180),
+      const Expense(id: '2', propertyId: 'p', description: 'Portal', amount: 249.9),
+    ];
+
+    test('comissão, a sua parte, despesas e lucro real', () {
+      final s = computeSaleSummary(sold, expenses, defaultAgentSplitPct: 50);
+      expect(s.agencyCommission, 15250);
+      expect(s.agentShare, 9150);
+      expect(s.expensesTotal, 429.9);
+      expect(s.profit, 8720.1);
+      expect(s.discount, 15000);
+      expect(s.daysOnMarket, 141);
+      expect(s.isSold, isTrue);
+    });
+
+    test('sem valores próprios usa o preço anunciado e a % por omissão', () {
+      const p = Property(id: 'q', title: 'T2', price: 200000, commissionPct: 4);
+      final s = computeSaleSummary(p, const [], defaultAgentSplitPct: 50);
+      expect(s.salePrice, 200000);
+      expect(s.agencyCommission, 8000);
+      expect(s.agentShare, 4000);
+      expect(s.profit, 4000);
+      expect(s.isSold, isFalse);
+    });
   });
 }

@@ -49,8 +49,10 @@ class Property extends Equatable {
     this.sourceUrl,
     this.ownerId,
     this.saleStatus,
+    this.salePrice,
     this.commissionPct,
     this.commissionVal,
+    this.agentSplitPct,
     this.dateStart,
     this.dateEnd,
     this.saleNotes,
@@ -88,14 +90,25 @@ class Property extends Equatable {
   /// Contacto proprietário/vendedor.
   final String? ownerId;
   final String? saleStatus;
+
+  /// Valor por que foi vendido/arrendado. O [price] é o preço anunciado.
+  final num? salePrice;
+
+  /// Comissão da agência, em % do valor de venda.
   final num? commissionPct;
   final num? commissionVal;
+
+  /// A parte da comissão que fica para o consultor, em %.
+  final num? agentSplitPct;
   final String? dateStart;
   final String? dateEnd;
   final String? saleNotes;
   final int? createdAt;
 
-  String get cover => images.isNotEmpty ? images.first : PropertyOptions.defaultImage;
+  bool get isSold => saleStatus == 'Vendido';
+
+  String get cover =>
+      images.isNotEmpty ? images.first : PropertyOptions.defaultImage;
 
   /// "Apartamento · T2", como o campo `tags` da app original.
   String get tags => '${tipo ?? 'Casa'} · ${tipologia ?? 'T2'}';
@@ -138,8 +151,10 @@ class Property extends Equatable {
       sourceUrl: s('sourceUrl'),
       ownerId: s('ownerId'),
       saleStatus: s('saleStatus'),
+      salePrice: parseNum(data['salePrice']),
       commissionPct: parseNum(data['commissionPct']),
       commissionVal: parseNum(data['commissionVal']),
+      agentSplitPct: parseNum(data['agentSplitPct']),
       dateStart: s('dateStart'),
       dateEnd: s('dateEnd'),
       saleNotes: s('saleNotes'),
@@ -148,69 +163,73 @@ class Property extends Equatable {
   }
 
   Map<String, dynamic> toMap() => {
-        'title': title,
-        'price': price,
-        'negocio': negocio ?? '',
-        'tipo': tipo ?? '',
-        'tipologia': tipologia ?? '',
-        'areaBruta': areaBruta,
-        'areaUtil': areaUtil,
-        'areaTerreno': areaTerreno,
-        'quartos': quartos,
-        'wc': wc,
-        'cp': cp ?? '',
-        'distrito': distrito ?? '',
-        'concelho': concelho ?? '',
-        'freguesia': freguesia ?? '',
-        'bairro': bairro ?? '',
-        'morada': morada ?? '',
-        'desc': desc ?? '',
-        'caracteristicas': caracteristicas ?? '',
-        'tags': tags,
-        'img': images.isNotEmpty ? images.first : PropertyOptions.defaultImage,
-        'images': images,
-        'sourceUrl': sourceUrl ?? '',
-        'ownerId': ownerId ?? '',
-        'saleStatus': saleStatus ?? '',
-        'commissionPct': commissionPct,
-        'commissionVal': commissionVal,
-        'dateStart': dateStart ?? '',
-        'dateEnd': dateEnd ?? '',
-        'saleNotes': saleNotes ?? '',
-        'createdAt': ?createdAt,
-      };
+    'title': title,
+    'price': price,
+    'negocio': negocio ?? '',
+    'tipo': tipo ?? '',
+    'tipologia': tipologia ?? '',
+    'areaBruta': areaBruta,
+    'areaUtil': areaUtil,
+    'areaTerreno': areaTerreno,
+    'quartos': quartos,
+    'wc': wc,
+    'cp': cp ?? '',
+    'distrito': distrito ?? '',
+    'concelho': concelho ?? '',
+    'freguesia': freguesia ?? '',
+    'bairro': bairro ?? '',
+    'morada': morada ?? '',
+    'desc': desc ?? '',
+    'caracteristicas': caracteristicas ?? '',
+    'tags': tags,
+    'img': images.isNotEmpty ? images.first : PropertyOptions.defaultImage,
+    'images': images,
+    'sourceUrl': sourceUrl ?? '',
+    'ownerId': ownerId ?? '',
+    'saleStatus': saleStatus ?? '',
+    'salePrice': salePrice,
+    'commissionPct': commissionPct,
+    'commissionVal': commissionVal,
+    'agentSplitPct': agentSplitPct,
+    'dateStart': dateStart ?? '',
+    'dateEnd': dateEnd ?? '',
+    'saleNotes': saleNotes ?? '',
+    'createdAt': ?createdAt,
+  };
 
   Property copyWith({List<String>? images, int? createdAt}) => Property(
-        id: id,
-        title: title,
-        price: price,
-        negocio: negocio,
-        tipo: tipo,
-        tipologia: tipologia,
-        areaBruta: areaBruta,
-        areaUtil: areaUtil,
-        areaTerreno: areaTerreno,
-        quartos: quartos,
-        wc: wc,
-        cp: cp,
-        distrito: distrito,
-        concelho: concelho,
-        freguesia: freguesia,
-        bairro: bairro,
-        morada: morada,
-        desc: desc,
-        caracteristicas: caracteristicas,
-        images: images ?? this.images,
-        sourceUrl: sourceUrl,
-        ownerId: ownerId,
-        saleStatus: saleStatus,
-        commissionPct: commissionPct,
-        commissionVal: commissionVal,
-        dateStart: dateStart,
-        dateEnd: dateEnd,
-        saleNotes: saleNotes,
-        createdAt: createdAt ?? this.createdAt,
-      );
+    id: id,
+    title: title,
+    price: price,
+    negocio: negocio,
+    tipo: tipo,
+    tipologia: tipologia,
+    areaBruta: areaBruta,
+    areaUtil: areaUtil,
+    areaTerreno: areaTerreno,
+    quartos: quartos,
+    wc: wc,
+    cp: cp,
+    distrito: distrito,
+    concelho: concelho,
+    freguesia: freguesia,
+    bairro: bairro,
+    morada: morada,
+    desc: desc,
+    caracteristicas: caracteristicas,
+    images: images ?? this.images,
+    sourceUrl: sourceUrl,
+    ownerId: ownerId,
+    saleStatus: saleStatus,
+    salePrice: salePrice,
+    commissionPct: commissionPct,
+    commissionVal: commissionVal,
+    agentSplitPct: agentSplitPct,
+    dateStart: dateStart,
+    dateEnd: dateEnd,
+    saleNotes: saleNotes,
+    createdAt: createdAt ?? this.createdAt,
+  );
 
   @override
   List<Object?> get props => [id, ...toMap().values];

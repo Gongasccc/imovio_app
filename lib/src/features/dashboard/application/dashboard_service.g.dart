@@ -54,4 +54,4 @@ final class DashboardKpisProvider
   }
 }
 
-String _$dashboardKpisHash() => r'd19615a9c94020d767400e2958238a5038194e80';
+String _$dashboardKpisHash() => r'202966ebec5895e0b70f98a050a1667317a1462d';

@@ -5,8 +5,8 @@ import 'package:imovio/src/common_widgets/async_value_widget.dart';
 import 'package:imovio/src/common_widgets/empty_placeholder.dart';
 import 'package:imovio/src/common_widgets/page_header.dart';
 import 'package:imovio/src/common_widgets/responsive_center.dart';
-import 'package:imovio/src/common_widgets/status_badge.dart';
 import 'package:imovio/src/constants/app_sizes.dart';
+import 'package:imovio/src/constants/app_theme.dart';
 import 'package:imovio/src/features/authentication/data/firebase_auth_repository.dart';
 import 'package:imovio/src/features/properties/data/properties_repository.dart';
 import 'package:imovio/src/features/properties/domain/property.dart';
@@ -31,15 +31,15 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
   String? _freguesia;
 
   List<Property> _filter(List<Property> list) => list.where((p) {
-        final q = _query.toLowerCase();
-        return (q.isEmpty ||
-                p.title.toLowerCase().contains(q) ||
-                (p.morada?.toLowerCase().contains(q) ?? false)) &&
-            (_negocio == null || p.negocio == _negocio) &&
-            (_distrito == null || p.distrito == _distrito) &&
-            (_concelho == null || p.concelho == _concelho) &&
-            (_freguesia == null || p.freguesia == _freguesia);
-      }).toList();
+    final q = _query.toLowerCase();
+    return (q.isEmpty ||
+            p.title.toLowerCase().contains(q) ||
+            (p.morada?.toLowerCase().contains(q) ?? false)) &&
+        (_negocio == null || p.negocio == _negocio) &&
+        (_distrito == null || p.distrito == _distrito) &&
+        (_concelho == null || p.concelho == _concelho) &&
+        (_freguesia == null || p.freguesia == _freguesia);
+  }).toList();
 
   List<String> _values(Iterable<String?> values) =>
       ({...values.whereType<String>()}.toList()..sort());
@@ -49,10 +49,12 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
     final value = ref.watch(propertiesStreamProvider);
     final all = value.value ?? const <Property>[];
     // Cada filtro só mostra opções compatíveis com os filtros acima dele.
-    final inDistrito =
-        all.where((p) => _distrito == null || p.distrito == _distrito);
-    final inConcelho =
-        inDistrito.where((p) => _concelho == null || p.concelho == _concelho);
+    final inDistrito = all.where(
+      (p) => _distrito == null || p.distrito == _distrito,
+    );
+    final inConcelho = inDistrito.where(
+      (p) => _concelho == null || p.concelho == _concelho,
+    );
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.pushNamed(AppRoute.newProperty.name),
@@ -69,7 +71,8 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
               children: [
                 PageHeader(
                   title: 'Imóveis',
-                  subtitle: '${all.length} imóveis em carteira. Cadastro, '
+                  subtitle:
+                      '${all.length} imóveis em carteira. Cadastro, '
                       'importação por link e galeria de fotos.',
                 ),
                 gapH16,
@@ -138,11 +141,11 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                       physics: const NeverScrollableScrollPhysics(),
                       gridDelegate:
                           const SliverGridDelegateWithMaxCrossAxisExtent(
-                        maxCrossAxisExtent: 340,
-                        mainAxisExtent: 345,
-                        crossAxisSpacing: Sizes.p16,
-                        mainAxisSpacing: Sizes.p16,
-                      ),
+                            maxCrossAxisExtent: 340,
+                            mainAxisExtent: 345,
+                            crossAxisSpacing: Sizes.p16,
+                            mainAxisSpacing: Sizes.p16,
+                          ),
                       itemCount: filtered.length,
                       itemBuilder: (_, i) =>
                           _PropertyCard(property: filtered[i]),
@@ -206,8 +209,10 @@ class _PropertyCard extends ConsumerWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => context
-            .pushNamed(AppRoute.property.name, pathParameters: {'id': p.id}),
+        onTap: () => context.pushNamed(
+          AppRoute.property.name,
+          pathParameters: {'id': p.id},
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -217,19 +222,35 @@ class _PropertyCard extends ConsumerWidget {
                 fit: StackFit.expand,
                 children: [
                   PropertyImage(url: p.cover),
-                  if (p.negocio != null)
-                    Positioned(
-                      left: 10,
-                      top: 10,
-                      child: StatusBadge(label: p.negocio!, color: Colors.white),
+                  Positioned(
+                    left: 10,
+                    top: 10,
+                    child: Wrap(
+                      spacing: 6,
+                      children: [
+                        if (p.negocio != null) _ImageBadge(label: p.negocio!),
+                        if (p.saleStatus != null &&
+                            p.saleStatus != 'Em Angariação')
+                          _ImageBadge(
+                            label:
+                                PropertyOptions.saleStatusLabels[p
+                                    .saleStatus] ??
+                                p.saleStatus!,
+                            color: p.isSold ? AppColors.green : AppColors.gold,
+                          ),
+                      ],
                     ),
+                  ),
                   if (p.images.length > 1)
                     Positioned(
                       right: 10,
                       bottom: 10,
                       child: Chip(
                         visualDensity: VisualDensity.compact,
-                        avatar: const Icon(Icons.photo_library_outlined, size: 14),
+                        avatar: const Icon(
+                          Icons.photo_library_outlined,
+                          size: 14,
+                        ),
                         label: Text('${p.images.length}'),
                       ),
                     ),
@@ -241,8 +262,12 @@ class _PropertyCard extends ConsumerWidget {
                       icon: const Icon(Icons.delete_outline, size: 18),
                       onPressed: () => confirmAndDelete(
                         context,
-                        () => ref.read(propertiesRepositoryProvider).deleteProperty(
-                            uid: ref.read(currentUidProvider), id: p.id),
+                        () => ref
+                            .read(propertiesRepositoryProvider)
+                            .deleteProperty(
+                              uid: ref.read(currentUidProvider),
+                              id: p.id,
+                            ),
                         success: 'Imóvel eliminado',
                       ),
                     ),
@@ -256,38 +281,54 @@ class _PropertyCard extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(p.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w600)),
+                    Text(
+                      p.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
                     gapH4,
-                    Text('${p.tags} • ${p.concelho ?? 'Local'}',
+                    Text(
+                      '${p.tags} • ${p.concelho ?? 'Local'}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    gapH8,
+                    Text(
+                      Format.euros(p.price),
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: scheme.primary,
+                      ),
+                    ),
+                    if (meta.isNotEmpty)
+                      Text(
+                        meta,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                            fontSize: 12, color: scheme.onSurfaceVariant)),
-                    gapH8,
-                    Text(Format.euros(p.price),
-                        maxLines: 1,
-                        style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            color: scheme.primary)),
-                    if (meta.isNotEmpty)
-                      Text(meta,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              fontSize: 12, color: scheme.onSurfaceVariant)),
+                          fontSize: 12,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
                     const Spacer(),
                     if (p.sourceUrl != null)
                       InkWell(
                         onTap: () => openExternalUrl(p.sourceUrl!),
-                        child: Text('Fonte original',
-                            style: TextStyle(
-                                fontSize: 11,
-                                color: scheme.primary,
-                                decoration: TextDecoration.underline)),
+                        child: Text(
+                          'Fonte original',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: scheme.primary,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
                       ),
                   ],
                 ),
@@ -298,4 +339,28 @@ class _PropertyCard extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Etiqueta legível por cima de uma foto.
+class _ImageBadge extends StatelessWidget {
+  const _ImageBadge({required this.label, this.color});
+  final String label;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+    decoration: BoxDecoration(
+      color: color ?? Colors.black.withValues(alpha: 0.6),
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Text(
+      label,
+      style: TextStyle(
+        color: color == AppColors.gold ? AppColors.darkBg : Colors.white,
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+  );
 }

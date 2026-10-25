@@ -11,6 +11,7 @@ import 'package:imovio/src/features/tasks/domain/task.dart';
 import 'package:imovio/src/routing/app_router.dart';
 import 'package:imovio/src/utils/format.dart';
 import 'package:imovio/src/utils/run_action.dart';
+import 'package:imovio/src/common_widgets/icon_label.dart';
 
 /// Uma tarefa com caixa de concluída, categoria, cliente, imóvel e prazo.
 class TaskTile extends ConsumerWidget {
@@ -54,8 +55,9 @@ class TaskTile extends ConsumerWidget {
                       task.title,
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
-                        decoration:
-                            task.isDone ? TextDecoration.lineThrough : null,
+                        decoration: task.isDone
+                            ? TextDecoration.lineThrough
+                            : null,
                         color: task.isDone ? muted : null,
                       ),
                     ),
@@ -68,23 +70,28 @@ class TaskTile extends ConsumerWidget {
                     children: [
                       StatusBadge(
                         label: task.status,
-                        color: task.isDone ? AppColors.green : AppColors.gold,
+                        color: task.isDone
+                            ? AppColors.green
+                            : Theme.of(context).colorScheme.primary,
                       ),
                       StatusBadge(label: task.category, color: muted),
                       if (contact != null)
-                        Text('👤 ${contact.name}',
-                            style: TextStyle(fontSize: 12, color: muted)),
+                        IconLabel(
+                          icon: Icons.person_outline,
+                          text: contact.name,
+                        ),
                       if (property != null)
-                        Text('🏠 ${property.title}',
-                            style: TextStyle(fontSize: 12, color: muted)),
+                        IconLabel(
+                          icon: Icons.home_outlined,
+                          text: property.title,
+                        ),
                       if (task.date != null)
-                        Text(
-                          Format.dateTime(task.date),
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: overdue ? AppColors.red : muted,
-                          ),
+                        IconLabel(
+                          icon: overdue
+                              ? Icons.warning_amber_rounded
+                              : Icons.schedule,
+                          text: Format.dateTime(task.date),
+                          color: overdue ? AppColors.red : muted,
                         ),
                     ],
                   ),

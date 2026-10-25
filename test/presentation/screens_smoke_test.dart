@@ -11,6 +11,9 @@ import 'package:intl/intl.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:imovio/src/features/settings/data/local_preferences.dart';
+import 'package:imovio/src/features/settings/domain/user_settings.dart';
+import 'package:imovio/src/features/expenses/data/expenses_repository.dart';
+import 'package:imovio/src/features/expenses/domain/expense.dart';
 import 'package:imovio/src/features/authentication/data/firebase_auth_repository.dart';
 import 'package:imovio/src/features/contacts/data/contacts_repository.dart';
 import 'package:imovio/src/features/contacts/domain/contact.dart';
@@ -128,6 +131,15 @@ final _comparables = [
 
 late SharedPreferences _prefs;
 
+final _expenses = [
+  const Expense(
+      id: 'e1',
+      propertyId: 'p1',
+      description: 'Sessão fotográfica',
+      category: 'Fotografia e vídeo',
+      amount: 180),
+];
+
 Widget _app(Widget child) => ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(_prefs),
@@ -141,6 +153,9 @@ Widget _app(Widget child) => ProviderScope(
             .overrideWith((ref) => Stream.value(_properties.first)),
         dealsStreamProvider.overrideWith((ref) => Stream.value(_deals)),
         tasksStreamProvider.overrideWith((ref) => Stream.value(_tasks)),
+        expensesStreamProvider.overrideWith((ref) => Stream.value(_expenses)),
+        settingsStreamProvider
+            .overrideWith((ref) => Stream.value(const UserSettings())),
         comparablesStreamProvider
             .overrideWith((ref) => Stream.value(_comparables)),
         studySettingsStreamProvider('p1')
@@ -261,8 +276,24 @@ void main() {
     await tester.tap(find.text('3. Detalhes de Venda'));
     await tester.pumpAndSettle();
     await tester.enterText(
-        find.widgetWithText(TextFormField, 'Comissão (%)'), '4');
+        find.widgetWithText(TextFormField, 'Comissão da agência'), '4');
     await tester.pump();
     expect(find.text('9960.00'), findsOneWidget);
+  });
+
+  testWidgets('aba de venda mostra o resumo e a de despesas lista custos',
+      (tester) async {
+    tester.view.physicalSize = const Size(1400, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(_app(const PropertyDetailScreen(propertyId: 'p1')));
+    await tester.pump();
+    await tester.tap(find.text('3. Detalhes de Venda'));
+    await tester.pumpAndSettle();
+    expect(find.text('Lucro real'), findsOneWidget);
+    expect(find.textContaining('180,00'), findsOneWidget);
+    await tester.tap(find.text('4. Despesas'));
+    await tester.pumpAndSettle();
+    expect(find.text('Sessão fotográfica'), findsOneWidget);
   });
 }

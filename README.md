@@ -18,6 +18,13 @@ dart run build_runner build
 flutter run -d chrome
 ```
 
+Modo demonstração (dados de exemplo em memória, sem Firebase nem login,
+para rever o visual e experimentar sem tocar nos dados reais):
+
+```bash
+flutter run -t tool/demo_main.dart -d chrome
+```
+
 Testes e análise:
 
 ```bash

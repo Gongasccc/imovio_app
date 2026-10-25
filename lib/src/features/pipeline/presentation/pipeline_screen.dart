@@ -12,6 +12,7 @@ import 'package:imovio/src/features/properties/data/properties_repository.dart';
 import 'package:imovio/src/routing/app_router.dart';
 import 'package:imovio/src/utils/format.dart';
 import 'package:imovio/src/utils/run_action.dart';
+import 'package:imovio/src/common_widgets/icon_label.dart';
 
 /// Pipeline em quadro Kanban: uma coluna por fase. Arrastar um cartão para
 /// outra coluna muda a fase do negócio.
@@ -36,40 +37,45 @@ class PipelineScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(Sizes.p16),
             child: PageHeader(
               title: 'Pipeline de Negócios',
-              subtitle: '${deals.length} negócios · ${Format.euros(total)} '
+              subtitle:
+                  '${deals.length} negócios · ${Format.euros(total)} '
                   'em pipeline. Arraste os cartões para mudar de fase.',
             ),
           ),
           Expanded(
             child: AsyncValueWidget<List<Deal>>(
               value: dealsValue,
-              data: (deals) => LayoutBuilder(builder: (context, constraints) {
-                final columnWidth = constraints.maxWidth >= 1200
-                    ? (constraints.maxWidth - 16 * 5) / 4
-                    : 280.0;
-                final stages = [
-                  ...DealStages.all,
-                  // Fases antigas que não estejam na lista continuam visíveis.
-                  ...{for (final d in deals) d.stage}
-                      .where((s) => !DealStages.all.contains(s)),
-                ];
-                return ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
-                  children: [
-                    for (final stage in stages) ...[
-                      SizedBox(
-                        width: columnWidth,
-                        child: _StageColumn(
-                          stage: stage,
-                          deals: deals.where((d) => d.stage == stage).toList(),
+              data: (deals) => LayoutBuilder(
+                builder: (context, constraints) {
+                  final columnWidth = constraints.maxWidth >= 1200
+                      ? (constraints.maxWidth - 16 * 5) / 4
+                      : 280.0;
+                  final stages = [
+                    ...DealStages.all,
+                    // Fases antigas que não estejam na lista continuam visíveis.
+                    ...{for (final d in deals) d.stage}
+                        .where((s) => !DealStages.all.contains(s)),
+                  ];
+                  return ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+                    children: [
+                      for (final stage in stages) ...[
+                        SizedBox(
+                          width: columnWidth,
+                          child: _StageColumn(
+                            stage: stage,
+                            deals: deals
+                                .where((d) => d.stage == stage)
+                                .toList(),
+                          ),
                         ),
-                      ),
-                      gapW16,
+                        gapW16,
+                      ],
                     ],
-                  ],
-                );
-              }),
+                  );
+                },
+              ),
             ),
           ),
         ],
@@ -107,7 +113,9 @@ class _StageColumn extends ConsumerWidget {
               : scheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: candidates.isNotEmpty ? scheme.primary : scheme.outlineVariant,
+            color: candidates.isNotEmpty
+                ? scheme.primary
+                : scheme.outlineVariant,
           ),
         ),
         padding: const EdgeInsets.all(Sizes.p12),
@@ -117,30 +125,38 @@ class _StageColumn extends ConsumerWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text(stage,
-                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                  child: Text(
+                    stage,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
                 ),
-                Text('${deals.length}',
-                    style: TextStyle(color: scheme.onSurfaceVariant)),
+                Text(
+                  '${deals.length}',
+                  style: TextStyle(color: scheme.onSurfaceVariant),
+                ),
               ],
             ),
-            Text(Format.euros(total),
-                style: TextStyle(
-                    color: scheme.primary, fontWeight: FontWeight.w700)),
+            Text(
+              Format.euros(total),
+              style: TextStyle(
+                color: scheme.primary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             gapH12,
             Expanded(
               child: deals.isEmpty
                   ? Center(
-                      child: Text('Sem negócios',
-                          style: TextStyle(color: scheme.onSurfaceVariant)),
+                      child: Text(
+                        'Sem negócios',
+                        style: TextStyle(color: scheme.onSurfaceVariant),
+                      ),
                     )
                   : ListView.separated(
                       itemCount: deals.length,
                       separatorBuilder: (_, _) => gapH8,
-                      itemBuilder: (context, i) => _DraggableDealCard(
-                        deal: deals[i],
-                        width: 256,
-                      ),
+                      itemBuilder: (context, i) =>
+                          _DraggableDealCard(deal: deals[i], width: 256),
                     ),
             ),
           ],
@@ -163,7 +179,10 @@ class _DraggableDealCard extends StatelessWidget {
       delay: const Duration(milliseconds: 250),
       feedback: Material(
         color: Colors.transparent,
-        child: SizedBox(width: width, child: Opacity(opacity: 0.9, child: card)),
+        child: SizedBox(
+          width: width,
+          child: Opacity(opacity: 0.9, child: card),
+        ),
       ),
       childWhenDragging: Opacity(opacity: 0.3, child: card),
       child: card,
@@ -184,28 +203,31 @@ class _DealCard extends ConsumerWidget {
       color: scheme.surface,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () => context
-            .pushNamed(AppRoute.deal.name, pathParameters: {'id': deal.id}),
+        onTap: () => context.pushNamed(
+          AppRoute.deal.name,
+          pathParameters: {'id': deal.id},
+        ),
         child: Padding(
           padding: const EdgeInsets.all(Sizes.p12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(deal.title,
-                  style: const TextStyle(fontWeight: FontWeight.w600)),
+              Text(
+                deal.title,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
               gapH4,
-              Text('👤 ${contact?.name ?? '—'}',
-                  style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
+              IconLabel(icon: Icons.person_outline, text: contact?.name ?? '—'),
               if (property != null)
-                Text('🏠 ${property.title}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style:
-                        TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
+                IconLabel(icon: Icons.home_outlined, text: property.title),
               gapH8,
-              Text(Format.euros(deal.value),
-                  style: TextStyle(
-                      fontWeight: FontWeight.w700, color: scheme.primary)),
+              Text(
+                Format.euros(deal.value),
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: scheme.primary,
+                ),
+              ),
             ],
           ),
         ),

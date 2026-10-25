@@ -21,21 +21,31 @@ class DealTile extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      onTap: () =>
-          context.pushNamed(AppRoute.deal.name, pathParameters: {'id': deal.id}),
-      title: Text(deal.title,
-          style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: Text([
-        'Cliente: ${contact?.name ?? '—'}',
-        if (property != null) property.title,
-      ].join(' · ')),
+      onTap: () => context.pushNamed(
+        AppRoute.deal.name,
+        pathParameters: {'id': deal.id},
+      ),
+      title: Text(
+        deal.title,
+        style: const TextStyle(fontWeight: FontWeight.w600),
+      ),
+      subtitle: Text(
+        [
+          'Cliente: ${contact?.name ?? '—'}',
+          if (property != null) property.title,
+        ].join(' · '),
+      ),
       trailing: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Text(
             Format.euros(deal.value),
-            style: TextStyle(fontWeight: FontWeight.w700, color: scheme.primary),
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: scheme.primary,
+            ),
           ),
           if (showStage) ...[
             const SizedBox(height: 4),

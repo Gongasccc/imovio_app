@@ -10,17 +10,24 @@ import 'package:imovio/src/common_widgets/responsive_center.dart';
 import 'package:imovio/src/common_widgets/section_card.dart';
 import 'package:imovio/src/common_widgets/status_badge.dart';
 import 'package:imovio/src/constants/app_sizes.dart';
+import 'package:imovio/src/constants/app_theme.dart';
 import 'package:imovio/src/features/contacts/data/contacts_repository.dart';
+import 'package:imovio/src/features/expenses/data/expenses_repository.dart';
+import 'package:imovio/src/features/expenses/presentation/property_expenses_section.dart';
 import 'package:imovio/src/features/pipeline/data/deals_repository.dart';
 import 'package:imovio/src/features/pipeline/presentation/deal_tile.dart';
 import 'package:imovio/src/features/properties/application/commission.dart';
 import 'package:imovio/src/features/properties/application/property_matching.dart';
+import 'package:imovio/src/features/properties/application/sale_summary.dart';
 import 'package:imovio/src/features/properties/data/properties_repository.dart';
 import 'package:imovio/src/features/properties/domain/property.dart';
 import 'package:imovio/src/features/properties/presentation/gallery_editor.dart';
 import 'package:imovio/src/features/properties/presentation/property_edit_controller.dart';
 import 'package:imovio/src/features/properties/presentation/property_form_fields.dart';
 import 'package:imovio/src/features/properties/presentation/property_list_tile.dart';
+import 'package:imovio/src/features/properties/presentation/sale_summary_card.dart';
+import 'package:imovio/src/features/settings/data/settings_repository.dart';
+import 'package:imovio/src/features/settings/domain/user_settings.dart';
 import 'package:imovio/src/features/tasks/data/tasks_repository.dart';
 import 'package:imovio/src/features/tasks/domain/task.dart';
 import 'package:imovio/src/features/tasks/presentation/task_tile.dart';
@@ -30,8 +37,8 @@ import 'package:imovio/src/utils/dialogs.dart';
 import 'package:imovio/src/utils/format.dart';
 import 'package:imovio/src/utils/launcher.dart';
 
-/// Página de detalhe do imóvel: capa, e as 3 abas da app original
-/// (detalhes, contactos/visitas, detalhes de venda).
+/// Página de detalhe do imóvel: capa e abas de detalhes, contactos/visitas,
+/// venda (com o resumo financeiro) e despesas.
 class PropertyDetailScreen extends ConsumerWidget {
   const PropertyDetailScreen({super.key, required this.propertyId});
   final PropertyID propertyId;
@@ -66,7 +73,7 @@ class _PropertyDetail extends ConsumerStatefulWidget {
 
 class _PropertyDetailState extends ConsumerState<_PropertyDetail>
     with SingleTickerProviderStateMixin {
-  late final _tabs = TabController(length: 3, vsync: this);
+  late final _tabs = TabController(length: 4, vsync: this);
   final _formKey = GlobalKey<FormState>();
   late final _data = PropertyFormData(widget.property);
 
@@ -74,6 +81,7 @@ class _PropertyDetailState extends ConsumerState<_PropertyDetail>
   void initState() {
     super.initState();
     _data['price'].addListener(_recalculateCommission);
+    _data['salePrice'].addListener(_recalculateCommission);
     _data['commissionPct'].addListener(_recalculateCommission);
   }
 
@@ -85,8 +93,9 @@ class _PropertyDetailState extends ConsumerState<_PropertyDetail>
   }
 
   void _recalculateCommission() {
+    // A comissão calcula-se sobre o valor de venda; sem ele, sobre o anunciado.
     final value = commissionValue(
-      price: parseNum(_data['price'].text),
+      price: parseNum(_data['salePrice'].text) ?? parseNum(_data['price'].text),
       percent: parseNum(_data['commissionPct'].text),
     );
     if (value != null) {
@@ -102,8 +111,11 @@ class _PropertyDetailState extends ConsumerState<_PropertyDetail>
         parseNum(_data['price'].text) == null ||
         !_formKey.currentState!.validate()) {
       _tabs.animateTo(0);
-      showSnack(context, 'Preencha pelo menos o título e o preço.',
-          error: true);
+      showSnack(
+        context,
+        'Preencha pelo menos o título e o preço.',
+        error: true,
+      );
       return;
     }
     final ok = await ref
@@ -115,8 +127,10 @@ class _PropertyDetailState extends ConsumerState<_PropertyDetail>
   }
 
   Future<void> _delete() async {
-    if (!await showConfirmDialog(context,
-            message: 'Eliminar o imóvel ${widget.property.title}?') ||
+    if (!await showConfirmDialog(
+          context,
+          message: 'Eliminar o imóvel ${widget.property.title}?',
+        ) ||
         !mounted) {
       return;
     }
@@ -131,8 +145,10 @@ class _PropertyDetailState extends ConsumerState<_PropertyDetail>
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(propertyEditControllerProvider,
-        (_, s) => s.showSnackBarOnError(context));
+    ref.listen(
+      propertyEditControllerProvider,
+      (_, s) => s.showSnackBarOnError(context),
+    );
     final saving = ref.watch(propertyEditControllerProvider).isLoading;
     final p = widget.property;
     return Scaffold(
@@ -143,7 +159,11 @@ class _PropertyDetailState extends ConsumerState<_PropertyDetail>
             SliverAppBar(
               pinned: true,
               expandedHeight: 260,
-              title: Text(p.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+              title: Text(
+                p.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
               actions: [
                 IconButton(
                   tooltip: 'Estudo de mercado',
@@ -171,21 +191,26 @@ class _PropertyDetailState extends ConsumerState<_PropertyDetail>
                   fit: StackFit.expand,
                   children: [
                     PropertyImage(
-                        url: _data.images.isEmpty
-                            ? PropertyOptions.defaultImage
-                            : _data.images.first),
+                      url: _data.images.isEmpty
+                          ? PropertyOptions.defaultImage
+                          : _data.images.first,
+                    ),
                     const DecoratedBox(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
-                          colors: [Colors.black54, Colors.transparent, Colors.black87],
+                          colors: [
+                            Colors.black54,
+                            Colors.transparent,
+                            Colors.black87,
+                          ],
                         ),
                       ),
                     ),
                     Positioned(
                       left: 16,
-                      bottom: 16,
+                      bottom: 64,
                       right: 16,
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.end,
@@ -196,8 +221,11 @@ class _PropertyDetailState extends ConsumerState<_PropertyDetail>
                               style: const TextStyle(color: Colors.white),
                             ),
                           ),
+                          if (p.isSold) ...[const _SoldBadge(), gapW8],
                           Text(
-                            Format.euros(p.price),
+                            Format.euros(
+                              p.isSold ? (p.salePrice ?? p.price) : p.price,
+                            ),
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 22,
@@ -210,59 +238,72 @@ class _PropertyDetailState extends ConsumerState<_PropertyDetail>
                   ],
                 ),
               ),
-              bottom: TabBar(
-                controller: _tabs,
-                isScrollable: true,
-                tabAlignment: TabAlignment.start,
-                tabs: const [
-                  Tab(text: '1. Detalhes do Imóvel'),
-                  Tab(text: '2. Contactos / Visitas'),
-                  Tab(text: '3. Detalhes de Venda'),
-                ],
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(kTextTabBarHeight),
+                child: Material(
+                  color: Theme.of(context).colorScheme.surface,
+                  child: TabBar(
+                    controller: _tabs,
+                    isScrollable: true,
+                    tabAlignment: TabAlignment.start,
+                    tabs: const [
+                      Tab(text: '1. Detalhes do Imóvel'),
+                      Tab(text: '2. Contactos / Visitas'),
+                      Tab(text: '3. Detalhes de Venda'),
+                      Tab(text: '4. Despesas'),
+                    ],
+                  ),
+                ),
               ),
             ),
           ],
           body: TabBarView(
             controller: _tabs,
             children: [
-              _tab(Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  FilledButton.tonalIcon(
-                    icon: const Icon(Icons.query_stats),
-                    label: const Text('Estudo de Mercado (PDF)'),
-                    onPressed: () => context.pushNamed(
-                      AppRoute.marketStudy.name,
-                      pathParameters: {'id': p.id},
+              _tab(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    FilledButton.tonalIcon(
+                      icon: const Icon(Icons.query_stats),
+                      label: const Text('Estudo de Mercado (PDF)'),
+                      onPressed: () => context.pushNamed(
+                        AppRoute.marketStudy.name,
+                        pathParameters: {'id': p.id},
+                      ),
                     ),
-                  ),
-                  gapH16,
-                  SectionCard(
-                    title: 'Caracterização',
-                    icon: Icons.home_outlined,
-                    child: PropertyFieldsForm(
-                      data: _data,
-                      onChanged: () => setState(() {}),
+                    gapH16,
+                    SectionCard(
+                      title: 'Caracterização',
+                      icon: Icons.home_outlined,
+                      child: PropertyFieldsForm(
+                        data: _data,
+                        onChanged: () => setState(() {}),
+                      ),
                     ),
-                  ),
-                  gapH16,
-                  SectionCard(
-                    title: 'Fotografias',
-                    icon: Icons.photo_library_outlined,
-                    child: GalleryEditor(
-                      propertyId: p.id,
-                      images: _data.images,
-                      onChanged: (imgs) => setState(() => _data.images = imgs),
+                    gapH16,
+                    SectionCard(
+                      title: 'Fotografias',
+                      icon: Icons.photo_library_outlined,
+                      child: GalleryEditor(
+                        propertyId: p.id,
+                        images: _data.images,
+                        onChanged: (imgs) =>
+                            setState(() => _data.images = imgs),
+                      ),
                     ),
-                  ),
-                ],
-              )),
-              _tab(_ContactsTab(
-                property: p,
-                ownerId: _data.ownerId,
-                onOwnerChanged: (id) => setState(() => _data.ownerId = id),
-              )),
+                  ],
+                ),
+              ),
+              _tab(
+                _ContactsTab(
+                  property: p,
+                  ownerId: _data.ownerId,
+                  onOwnerChanged: (id) => setState(() => _data.ownerId = id),
+                ),
+              ),
               _tab(_saleTab()),
+              _tab(PropertyExpensesSection(propertyId: p.id)),
             ],
           ),
         ),
@@ -280,75 +321,131 @@ class _PropertyDetailState extends ConsumerState<_PropertyDetail>
   }
 
   Widget _tab(Widget child) => ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          ResponsiveCenter(
-            maxContentWidth: 900,
-            padding: const EdgeInsets.all(Sizes.p16),
-            child: child,
-          ),
-        ],
-      );
+    padding: EdgeInsets.zero,
+    children: [
+      ResponsiveCenter(
+        maxContentWidth: 900,
+        padding: const EdgeInsets.all(Sizes.p16),
+        child: child,
+      ),
+    ],
+  );
 
   Widget _saleTab() {
     DateTime? d(String key) => parseDate(_data[key].text);
-    void setDate(String key, DateTime? v) => setState(
-        () => _data[key].text = v == null ? '' : formatIsoDate(v));
-    return SectionCard(
-      title: 'Venda e comissão',
-      icon: Icons.euro,
-      child: FormGrid(children: [
-        TextDropdown(
-          label: 'Estado da Angariação / Venda',
-          value: _data.saleStatus,
-          options: PropertyOptions.saleStatuses,
-          optionLabels: PropertyOptions.saleStatusLabels,
-          onChanged: (v) =>
-              setState(() => _data.saleStatus = v ?? _data.saleStatus),
-        ),
-        TextFormField(
-          controller: _data['price'],
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration:
-              const InputDecoration(labelText: 'Valor de Venda / Fecho (€)'),
-        ),
-        TextFormField(
-          controller: _data['commissionPct'],
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(
-              labelText: 'Comissão (%)', hintText: '5'),
-        ),
-        TextFormField(
-          controller: _data['commissionVal'],
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(
-            labelText: 'Valor da Comissão (€)',
-            helperText: 'Calculado a partir do valor e da percentagem',
-          ),
-        ),
-        DateTimeField(
-          label: 'Data de Angariação',
-          withTime: false,
-          value: d('dateStart'),
-          onChanged: (v) => setDate('dateStart', v),
-        ),
-        DateTimeField(
-          label: 'Data Prevista / Fecho',
-          withTime: false,
-          value: d('dateEnd'),
-          onChanged: (v) => setDate('dateEnd', v),
-        ),
-        FullWidth(
-          child: TextFormField(
-            controller: _data['saleNotes'],
-            maxLines: 4,
-            decoration: const InputDecoration(
-              labelText: 'Notas de Negociação e Condições de Venda',
-              hintText: 'Condições do CPCV, prazos de financiamento...',
+    void setDate(String key, DateTime? v) =>
+        setState(() => _data[key].text = v == null ? '' : formatIsoDate(v));
+    final settings =
+        ref.watch(settingsStreamProvider).value ?? const UserSettings();
+    final expenses =
+        ref.watch(expensesByPropertyProvider)[widget.property.id] ?? const [];
+    Widget number(
+      String key,
+      String label, {
+      String? hint,
+      String? helper,
+      String? suffix,
+    }) => TextFormField(
+      controller: _data[key],
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        helperText: helper,
+        suffixText: suffix,
+      ),
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Recalcula o resumo a cada tecla nos campos de valores.
+        ListenableBuilder(
+          listenable: Listenable.merge([
+            for (final k in [
+              'price',
+              'salePrice',
+              'commissionPct',
+              'commissionVal',
+              'agentSplitPct',
+              'dateStart',
+              'dateEnd',
+            ])
+              _data[k],
+          ]),
+          builder: (context, _) => SaleSummaryCard(
+            summary: computeSaleSummary(
+              _data.toProperty(),
+              expenses,
+              defaultAgentSplitPct: settings.agentSplitPct,
             ),
           ),
         ),
-      ]),
+        gapH16,
+        SectionCard(
+          title: 'Venda e comissão',
+          icon: Icons.euro,
+          child: FormGrid(
+            children: [
+              TextDropdown(
+                label: 'Estado da Angariação / Venda',
+                value: _data.saleStatus,
+                options: PropertyOptions.saleStatuses,
+                optionLabels: PropertyOptions.saleStatusLabels,
+                onChanged: (v) =>
+                    setState(() => _data.saleStatus = v ?? _data.saleStatus),
+              ),
+              number('price', 'Preço anunciado', suffix: '€'),
+              number(
+                'salePrice',
+                'Valor de Venda / Fecho',
+                suffix: '€',
+                helper: 'Por quanto foi (ou vai ser) vendido',
+              ),
+              number(
+                'commissionPct',
+                'Comissão da agência',
+                hint: '${settings.commissionPct}',
+                suffix: '%',
+              ),
+              number(
+                'commissionVal',
+                'Valor da Comissão',
+                suffix: '€',
+                helper: 'Calculado a partir do valor e da percentagem',
+              ),
+              number(
+                'agentSplitPct',
+                'A sua parte da comissão',
+                hint: '${settings.agentSplitPct}',
+                suffix: '%',
+                helper: 'Vazio usa ${settings.agentSplitPct} % (Configurações)',
+              ),
+              DateTimeField(
+                label: 'Data de Angariação',
+                withTime: false,
+                value: d('dateStart'),
+                onChanged: (v) => setDate('dateStart', v),
+              ),
+              DateTimeField(
+                label: 'Data Prevista / Fecho',
+                withTime: false,
+                value: d('dateEnd'),
+                onChanged: (v) => setDate('dateEnd', v),
+              ),
+              FullWidth(
+                child: TextFormField(
+                  controller: _data['saleNotes'],
+                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    labelText: 'Notas de Negociação e Condições de Venda',
+                    hintText: 'Condições do CPCV, prazos de financiamento...',
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -368,9 +465,10 @@ class _ContactsTab extends ConsumerWidget {
     final owner = ref.watch(contactsByIdProvider)[ownerId];
     final contacts = ref.watch(contactsStreamProvider).value ?? const [];
     final visits = (ref.watch(tasksStreamProvider).value ?? const <Task>[])
-        .where((t) =>
-            t.propertyId == property.id &&
-            t.category == TaskCategories.visit)
+        .where(
+          (t) =>
+              t.propertyId == property.id && t.category == TaskCategories.visit,
+        )
         .toList();
     final deals = (ref.watch(dealsStreamProvider).value ?? const [])
         .where((d) => d.propertyId == property.id)
@@ -395,12 +493,14 @@ class _ContactsTab extends ConsumerWidget {
               ),
               if (owner != null) ...[
                 gapH12,
-                Text([owner.phone, owner.email]
-                    .whereType<String>()
-                    .join(' · ')),
+                Text(
+                  [owner.phone, owner.email].whereType<String>().join(' · '),
+                ),
                 TextButton(
-                  onPressed: () => context.pushNamed(AppRoute.contact.name,
-                      pathParameters: {'id': owner.id}),
+                  onPressed: () => context.pushNamed(
+                    AppRoute.contact.name,
+                    pathParameters: {'id': owner.id},
+                  ),
                   child: const Text('Abrir ficha do contacto'),
                 ),
               ],
@@ -440,7 +540,8 @@ class _ContactsTab extends ConsumerWidget {
           icon: Icons.auto_awesome_outlined,
           child: interested.isEmpty
               ? const Text(
-                  'Nenhum contacto tem preferências compatíveis com este imóvel.')
+                  'Nenhum contacto tem preferências compatíveis com este imóvel.',
+                )
               : Column(
                   children: [
                     for (final c in interested)
@@ -449,8 +550,10 @@ class _ContactsTab extends ConsumerWidget {
                         title: Text(c.name),
                         subtitle: Text(c.phone ?? c.email ?? ''),
                         trailing: StatusBadge(label: c.type),
-                        onTap: () => context.pushNamed(AppRoute.contact.name,
-                            pathParameters: {'id': c.id}),
+                        onTap: () => context.pushNamed(
+                          AppRoute.contact.name,
+                          pathParameters: {'id': c.id},
+                        ),
                       ),
                   ],
                 ),
@@ -458,4 +561,25 @@ class _ContactsTab extends ConsumerWidget {
       ],
     );
   }
+}
+
+class _SoldBadge extends StatelessWidget {
+  const _SoldBadge();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+    decoration: BoxDecoration(
+      color: AppColors.green,
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: const Text(
+      'Vendido',
+      style: TextStyle(
+        color: Colors.white,
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+  );
 }
