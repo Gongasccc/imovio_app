@@ -6,10 +6,13 @@ import 'package:imovio/src/common_widgets/empty_placeholder.dart';
 import 'package:imovio/src/common_widgets/responsive_center.dart';
 import 'package:imovio/src/common_widgets/section_card.dart';
 import 'package:imovio/src/constants/app_sizes.dart';
+import 'package:imovio/src/features/ai/data/gemini_repository.dart';
+import 'package:imovio/src/features/ai/presentation/gemini_key_dialog.dart';
 import 'package:imovio/src/features/market_study/application/market_study_service.dart';
 import 'package:imovio/src/features/market_study/domain/comparable_listing.dart';
 import 'package:imovio/src/features/market_study/domain/market_study.dart';
 import 'package:imovio/src/features/market_study/domain/study_settings.dart';
+import 'package:imovio/src/features/market_study/presentation/area_search_dialog.dart';
 import 'package:imovio/src/features/market_study/presentation/comparable_form_dialog.dart';
 import 'package:imovio/src/features/properties/domain/property.dart';
 import 'package:imovio/src/routing/app_router.dart';
@@ -32,7 +35,20 @@ class MarketStudyScreen extends ConsumerWidget {
     );
     final study = ref.watch(marketStudyProvider(propertyId));
     return Scaffold(
-      appBar: AppBar(title: const Text('Estudo de Mercado')),
+      appBar: AppBar(
+        title: const Text('Estudo de Mercado'),
+        actions: [
+          IconButton(
+            tooltip: 'Ligar o Gemini',
+            icon: Icon(
+              ref.watch(geminiKeyProvider).value == null
+                  ? Icons.key_off_outlined
+                  : Icons.key,
+            ),
+            onPressed: () => showGeminiKeyDialog(context),
+          ),
+        ],
+      ),
       body: AsyncValueWidget<MarketStudy?>(
         value: study,
         data: (s) => s == null
@@ -92,6 +108,8 @@ class _StudyBody extends ConsumerWidget {
               _CoefficientsCard(study: study, onChanged: (s) => _save(ref, s)),
               gapH16,
               _NotesCard(study: study, onChanged: (s) => _save(ref, s)),
+              gapH16,
+              _CommentaryCard(study: study, onChanged: (s) => _save(ref, s)),
             ],
           ),
         ),
@@ -328,6 +346,20 @@ class _ComparablesCard extends ConsumerWidget {
     );
   }
 
+  Future<void> _searchArea(BuildContext context, WidgetRef ref) async {
+    if (!await _ensureGemini(context, ref) || !context.mounted) return;
+    final controller = ref.read(marketStudyControllerProvider.notifier);
+    final result = await controller.searchArea(study);
+    if (result == null || !context.mounted) return;
+    final chosen = await showAreaSearchResults(context, result);
+    if (chosen == null || chosen.isEmpty) return;
+    await controller.addComparables(
+      chosen,
+      study.subject.property.id,
+      study.settings,
+    );
+  }
+
   Future<void> _addManual(BuildContext context, WidgetRef ref) async {
     final controller = ref.read(marketStudyControllerProvider.notifier);
     final p = study.subject.property;
@@ -410,6 +442,11 @@ class _ComparablesCard extends ConsumerWidget {
             spacing: Sizes.p8,
             runSpacing: Sizes.p8,
             children: [
+              FilledButton.icon(
+                icon: const Icon(Icons.travel_explore),
+                label: const Text('Pesquisar preços na zona'),
+                onPressed: loading ? null : () => _searchArea(context, ref),
+              ),
               FilledButton.tonalIcon(
                 icon: const Icon(Icons.link),
                 label: const Text('Adicionar por link'),
@@ -807,6 +844,108 @@ class _NotesCardState extends State<_NotesCard> {
                 'Pontos fortes, procura na zona, recomendação de preço...',
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Garante que há chave do Gemini, pedindo-a se for preciso.
+Future<bool> _ensureGemini(BuildContext context, WidgetRef ref) async {
+  if (await ref.read(geminiKeyProvider.future) != null) return true;
+  if (!context.mounted) return false;
+  return showGeminiKeyDialog(context);
+}
+
+class _CommentaryCard extends ConsumerStatefulWidget {
+  const _CommentaryCard({required this.study, required this.onChanged});
+  final MarketStudy study;
+  final ValueChanged<StudySettings> onChanged;
+
+  @override
+  ConsumerState<_CommentaryCard> createState() => _CommentaryCardState();
+}
+
+class _CommentaryCardState extends ConsumerState<_CommentaryCard> {
+  late final _text = TextEditingController(
+    text: widget.study.settings.commentary ?? '',
+  );
+  final _focus = FocusNode();
+
+  @override
+  void didUpdateWidget(covariant _CommentaryCard old) {
+    super.didUpdateWidget(old);
+    // Texto novo escrito pelo Gemini: mostra-o, se não estiver a editar.
+    final saved = widget.study.settings.commentary ?? '';
+    if (!_focus.hasFocus && _text.text != saved) _text.text = saved;
+  }
+
+  @override
+  void dispose() {
+    _text.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    if ((widget.study.settings.commentary ?? '') == _text.text.trim()) return;
+    widget.onChanged(
+      widget.study.settings.copyWith(commentary: _text.text.trim()),
+    );
+  }
+
+  Future<void> _write() async {
+    if (!await _ensureGemini(context, ref) || !mounted) return;
+    if (_text.text.trim().isNotEmpty &&
+        !await showConfirmDialog(
+          context,
+          title: 'Escrever de novo',
+          message: 'Substituir o comentário atual por um novo do Gemini?',
+          confirmLabel: 'Substituir',
+        )) {
+      return;
+    }
+    await ref
+        .read(marketStudyControllerProvider.notifier)
+        .writeCommentary(widget.study);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final loading = ref.watch(marketStudyControllerProvider).isLoading;
+    return SectionCard(
+      title: 'Análise de mercado (PDF)',
+      icon: Icons.auto_awesome_outlined,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Focus(
+            onFocusChange: (focused) {
+              if (!focused) _save();
+            },
+            child: TextField(
+              controller: _text,
+              focusNode: _focus,
+              minLines: 3,
+              maxLines: 12,
+              decoration: const InputDecoration(
+                hintText:
+                    'Comentário para o proprietário. O Gemini escreve-o com os '
+                    'números deste estudo; reveja e edite antes de gerar o PDF.',
+              ),
+            ),
+          ),
+          gapH8,
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton.tonalIcon(
+              icon: const Icon(Icons.auto_awesome),
+              label: const Text('Escrever com Gemini'),
+              onPressed: loading || widget.study.pricePerM2 == null
+                  ? null
+                  : _write,
+            ),
+          ),
+        ],
       ),
     );
   }

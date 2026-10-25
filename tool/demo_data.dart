@@ -27,8 +27,8 @@ final demoContacts = [
     nif: '179552015',
     city: 'Almada',
     preferences: const PropertyPreferences(
-      concelho: 'Almada',
-      tipologia: 'T2',
+      concelhos: ['Almada'],
+      tipologias: ['T2'],
       maxPrice: 300000,
     ),
     createdAt: _ms(40),
@@ -50,8 +50,8 @@ final demoContacts = [
     type: ContactTypes.buyer,
     origin: 'Particular',
     preferences: const PropertyPreferences(
-      distrito: 'Setúbal',
-      tipo: 'Moradia',
+      distritos: ['Setúbal'],
+      tipos: ['Moradia'],
       maxPrice: 550000,
     ),
     createdAt: _ms(25),
@@ -62,7 +62,7 @@ final demoContacts = [
     phone: '965443322',
     type: ContactTypes.tenant,
     origin: 'idealista',
-    preferences: const PropertyPreferences(concelho: 'Seixal', maxPrice: 1100),
+    preferences: const PropertyPreferences(concelhos: ['Seixal'], maxPrice: 1100),
     createdAt: _ms(10),
   ),
   Contact(

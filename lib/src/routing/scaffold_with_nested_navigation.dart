@@ -20,8 +20,42 @@ const _destinations = [
   _Destination('Tarefas', Icons.task_alt_outlined, Icons.task_alt),
 ];
 
-/// Barra inferior no telemóvel e barra lateral em ecrãs largos, como a
-/// app original (bottom-nav + sidebar). Baseado no esqueleto.
+/// Quantos destinos aparecem na barra inferior do telemóvel. Os restantes
+/// (e as Configurações) ficam no menu lateral.
+const _bottomBarCount = 3;
+
+class _Logo extends StatelessWidget {
+  const _Logo({this.showName = true});
+  final bool showName;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: AppColors.gold,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(Icons.home_work, size: 20, color: AppColors.darkBg),
+        ),
+        if (showName) ...[
+          gapW8,
+          const Text(
+            'Imovio',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Telemóvel: barra inferior com Início, Contactos e Imóveis, e menu lateral
+/// com tudo (incluindo Pipeline, Tarefas e Configurações).
+/// Ecrãs largos: barra lateral fixa. Baseado no esqueleto.
 class ScaffoldWithNestedNavigation extends StatelessWidget {
   const ScaffoldWithNestedNavigation({
     Key? key,
@@ -39,23 +73,7 @@ class ScaffoldWithNestedNavigation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
-    if (width < 600) {
-      return Scaffold(
-        body: SafeArea(bottom: false, child: navigationShell),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: navigationShell.currentIndex,
-          onDestinationSelected: _goBranch,
-          destinations: [
-            for (final d in _destinations)
-              NavigationDestination(
-                icon: Icon(d.icon),
-                selectedIcon: Icon(d.selectedIcon),
-                label: d.label,
-              ),
-          ],
-        ),
-      );
-    }
+    if (width < 600) return _mobile(context);
     final extended = width >= wideBreakpoint + 200;
     return Scaffold(
       body: Row(
@@ -64,30 +82,12 @@ class ScaffoldWithNestedNavigation extends StatelessWidget {
             extended: extended,
             selectedIndex: navigationShell.currentIndex,
             onDestinationSelected: _goBranch,
-            labelType:
-                extended ? NavigationRailLabelType.none : NavigationRailLabelType.all,
+            labelType: extended
+                ? NavigationRailLabelType.none
+                : NavigationRailLabelType.all,
             leading: Padding(
               padding: const EdgeInsets.symmetric(vertical: Sizes.p16),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: AppColors.gold,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.home_work,
-                        size: 20, color: AppColors.darkBg),
-                  ),
-                  if (extended) ...[
-                    gapW8,
-                    const Text('Imovio',
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w700)),
-                  ],
-                ],
-              ),
+              child: _Logo(showName: extended),
             ),
             trailing: Expanded(
               child: Align(
@@ -114,6 +114,72 @@ class ScaffoldWithNestedNavigation extends StatelessWidget {
           const VerticalDivider(thickness: 1, width: 1),
           Expanded(child: SafeArea(left: false, child: navigationShell)),
         ],
+      ),
+    );
+  }
+
+  Widget _mobile(BuildContext context) {
+    final current = navigationShell.currentIndex;
+    final inBottomBar = current < _bottomBarCount;
+    final theme = Theme.of(context);
+    return Scaffold(
+      appBar: AppBar(
+        toolbarHeight: 52,
+        titleSpacing: 0,
+        title: const _Logo(),
+      ),
+      drawer: NavigationDrawer(
+        selectedIndex: current,
+        onDestinationSelected: (i) {
+          Navigator.of(context).pop();
+          if (i < _destinations.length) {
+            _goBranch(i);
+          } else {
+            context.pushNamed(AppRoute.settings.name);
+          }
+        },
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(28, 20, 16, 16),
+            child: Align(alignment: Alignment.centerLeft, child: _Logo()),
+          ),
+          for (final d in _destinations)
+            NavigationDrawerDestination(
+              icon: Icon(d.icon),
+              selectedIcon: Icon(d.selectedIcon),
+              label: Text(d.label),
+            ),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 28, vertical: 8),
+            child: Divider(),
+          ),
+          const NavigationDrawerDestination(
+            icon: Icon(Icons.settings_outlined),
+            label: Text('Configurações'),
+          ),
+        ],
+      ),
+      body: SafeArea(top: false, bottom: false, child: navigationShell),
+      // Em Pipeline e Tarefas (que estão no menu) nenhum botão fica marcado.
+      bottomNavigationBar: NavigationBarTheme(
+        data: theme.navigationBarTheme.copyWith(
+          indicatorColor: inBottomBar ? null : Colors.transparent,
+        ),
+        child: NavigationBar(
+          height: 64,
+          selectedIndex: inBottomBar ? current : 0,
+          onDestinationSelected: _goBranch,
+          destinations: [
+            for (final (i, d) in _destinations.take(_bottomBarCount).indexed)
+              NavigationDestination(
+                icon: Icon(d.icon),
+                selectedIcon: Icon(
+                  inBottomBar || i != 0 ? d.selectedIcon : d.icon,
+                ),
+                label: d.label,
+              ),
+          ],
+        ),
       ),
     );
   }

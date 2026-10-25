@@ -130,7 +130,7 @@ class ListingParser {
         .merge(fromText)
         .merge(ImportedListing(images: images))
         // A og:image é a capa escolhida pelo portal: vem primeiro.
-        ._withImages((all) => dedupeImages([...meta.images, ...all]));
+        .withImages((all) => dedupeImages([...meta.images, ...all]));
   }
 
   /// A mesma foto aparece em vários tamanhos (`?width=390`, `?width=1200`):
@@ -497,8 +497,8 @@ class ListingParser {
   static int? _toInt(Object? v) => _num(v)?.round();
 }
 
-extension on ImportedListing {
-  ImportedListing _withImages(List<String> Function(List<String>) f) =>
+extension ImportedListingImages on ImportedListing {
+  ImportedListing withImages(List<String> Function(List<String>) f) =>
       ImportedListing(
           title: title,
           description: description,

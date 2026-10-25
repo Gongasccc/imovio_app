@@ -134,7 +134,7 @@ final class ListingImportControllerProvider
 }
 
 String _$listingImportControllerHash() =>
-    r'd8aa28fb6fca9111960cfa454d97776838360813';
+    r'b4d40ee84d7b7dce390b7ed1c11c8ed00f53ffd4';
 
 abstract class _$ListingImportController
     extends $AsyncNotifier<ImportedListing?> {

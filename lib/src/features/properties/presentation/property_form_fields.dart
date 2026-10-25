@@ -14,6 +14,8 @@ class PropertyFormData {
       tipologia = p.tipologia,
       saleStatus = p.saleStatus ?? PropertyOptions.saleStatuses.first,
       ownerId = p.ownerId,
+      contractType = p.contractType,
+      saleMode = p.saleMode ?? PropertyOptions.saleModes.first,
       images = [...p.images] {
     String n(num? v) => v?.toString() ?? '';
     text = {
@@ -36,6 +38,12 @@ class PropertyFormData {
       'salePrice': TextEditingController(text: n(p.salePrice)),
       'commissionPct': TextEditingController(text: n(p.commissionPct ?? 5)),
       'agentSplitPct': TextEditingController(text: n(p.agentSplitPct)),
+      'sharePct': TextEditingController(
+        text: n(p.sharePct ?? PropertyOptions.defaultSharePct),
+      ),
+      'vatPct': TextEditingController(
+        text: n(p.vatPct ?? PropertyOptions.defaultVatPct),
+      ),
       'commissionVal': TextEditingController(text: n(p.commissionVal)),
       'dateStart': TextEditingController(text: p.dateStart),
       'dateEnd': TextEditingController(text: p.dateEnd),
@@ -50,6 +58,8 @@ class PropertyFormData {
   String? tipologia;
   String saleStatus;
   String? ownerId;
+  String? contractType;
+  String saleMode;
   List<String> images;
 
   TextEditingController operator [](String key) => text[key]!;
@@ -125,6 +135,10 @@ class PropertyFormData {
     commissionPct: parseNum(text['commissionPct']!.text),
     commissionVal: parseNum(text['commissionVal']!.text),
     agentSplitPct: parseNum(text['agentSplitPct']!.text),
+    contractType: contractType,
+    saleMode: saleMode,
+    sharePct: parseNum(text['sharePct']!.text),
+    vatPct: parseNum(text['vatPct']!.text),
     dateStart: _s('dateStart'),
     dateEnd: _s('dateEnd'),
     saleNotes: _s('saleNotes'),

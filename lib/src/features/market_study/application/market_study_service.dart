@@ -1,5 +1,8 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:imovio/src/features/ai/data/gemini_client.dart';
+import 'package:imovio/src/features/ai/data/gemini_repository.dart';
 import 'package:imovio/src/features/authentication/data/firebase_auth_repository.dart';
+import 'package:imovio/src/features/market_study/application/market_ai_service.dart';
 import 'package:imovio/src/features/market_study/application/market_study_calculator.dart';
 import 'package:imovio/src/features/market_study/data/market_study_repository.dart';
 import 'package:imovio/src/features/market_study/domain/comparable_listing.dart';
@@ -49,6 +52,58 @@ Future<MarketStudy?> marketStudy(Ref ref, PropertyID propertyId) async {
 class MarketStudyController extends _$MarketStudyController {
   @override
   FutureOr<void> build() {}
+
+  Future<MarketAiService> _ai() async {
+    final gemini = await ref.read(geminiClientProvider.future);
+    if (gemini == null) {
+      throw const GeminiException(
+        'Configure primeiro a chave do Gemini (ícone da chave no topo).',
+      );
+    }
+    return MarketAiService(gemini);
+  }
+
+  /// Procura com o Gemini anúncios semelhantes na zona.
+  Future<AreaSearchResult?> searchArea(MarketStudy study) async {
+    AreaSearchResult? result;
+    final repo = ref.read(marketStudyRepositoryProvider);
+    final uid = ref.read(currentUidProvider);
+    await _run(() async {
+      result = await (await _ai()).searchArea(
+        study,
+        newId: () => repo.newComparableId(uid),
+      );
+    });
+    return result;
+  }
+
+  /// Guarda os anúncios escolhidos e põe-nos no estudo.
+  Future<bool> addComparables(
+    List<ComparableListing> list,
+    PropertyID propertyId,
+    StudySettings settings,
+  ) => _run(() async {
+    final uid = ref.read(currentUidProvider);
+    final repo = ref.read(marketStudyRepositoryProvider);
+    var next = settings;
+    for (final c in list) {
+      await repo.saveComparable(uid: uid, comparable: c);
+      next = next.toggle(c.id, include: true);
+    }
+    await repo.saveSettings(uid: uid, propertyId: propertyId, settings: next);
+  });
+
+  /// Escreve com o Gemini o comentário de mercado e guarda-o no estudo.
+  Future<bool> writeCommentary(MarketStudy study) => _run(() async {
+    final text = await (await _ai()).writeCommentary(study);
+    await ref
+        .read(marketStudyRepositoryProvider)
+        .saveSettings(
+          uid: ref.read(currentUidProvider),
+          propertyId: study.subject.property.id,
+          settings: study.settings.copyWith(commentary: text),
+        );
+  });
 
   Future<bool> _run(Future<void> Function() action) async {
     state = const AsyncLoading();

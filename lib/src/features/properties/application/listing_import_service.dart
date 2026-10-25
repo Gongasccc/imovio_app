@@ -2,6 +2,10 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:imovio/src/features/ai/application/listing_ai_extractor.dart';
+import 'package:imovio/src/features/geo/application/location_resolver.dart';
+import 'package:imovio/src/features/geo/data/geo_repository.dart';
+import 'package:imovio/src/features/geo/domain/geo_data.dart';
 import 'package:imovio/src/features/properties/application/listing_parser.dart';
 
 export 'package:imovio/src/features/properties/application/listing_parser.dart'
@@ -22,11 +26,45 @@ class ListingImportService {
 
   static const _timeout = Duration(seconds: 15);
 
-  Future<ImportedListing> extract(String url) async {
+  /// Lê o anúncio e, com [geo], associa distrito, concelho e freguesia
+  /// oficiais. Só fica a foto de capa.
+  ///
+  /// Com [ai] (a chave Gemini do utilizador), o Gemini também lê o anúncio e
+  /// completa o que o leitor automático não encontrou. Os números do leitor
+  /// automático ganham, porque vêm dos dados estruturados da página.
+  Future<ImportedListing> extract(
+    String url, {
+    GeoData? geo,
+    ListingAiExtractor? ai,
+  }) async {
     final html = await _fetchHtml(url);
-    if (html != null) return ListingParser.parse(html);
-    // Sem HTML: pelo menos título, descrição e capa via metadados.
-    return _microlink(url);
+    ImportedListing? fromAi;
+    if (ai != null) {
+      try {
+        fromAi = await ai.extract(url, html: html);
+      } catch (_) {
+        // Sem IA (quota, rede): fica o resultado do leitor automático.
+      }
+    }
+    var listing = html != null
+        ? ListingParser.parse(html)
+        : (fromAi == null ? await _microlink(url) : const ImportedListing());
+    if (fromAi != null) listing = listing.merge(fromAi);
+    listing = listing.withImages((all) => all.take(1).toList());
+    if (geo == null) return listing;
+    final postal =
+        listing.cp == null ? null : await lookupPostalCode(_client, listing.cp!);
+    final place = resolveLocation(
+      geo,
+      postal: postal,
+      places: [listing.freguesia, listing.concelho, postal?.localidade],
+      texts: [listing.title, listing.morada, listing.description, url],
+    );
+    return ImportedListing(
+      distrito: place.distrito,
+      concelho: place.concelho,
+      freguesia: place.freguesia,
+    ).merge(listing);
   }
 
   /// Tenta vários proxies até um devolver a página.

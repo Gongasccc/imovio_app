@@ -32,7 +32,14 @@ class _PropertyNewScreenState extends ConsumerState<PropertyNewScreen> {
     // O id é reservado já, para as fotos carregadas ficarem na pasta certa.
     final uid = ref.read(currentUidProvider);
     final id = ref.read(propertiesRepositoryProvider).newId(uid);
-    _data = PropertyFormData(Property(id: id, title: ''));
+    _data = PropertyFormData(Property(
+      id: id,
+      title: '',
+      commissionPct: 5,
+      agentSplitPct: 50,
+      vatPct: PropertyOptions.defaultVatPct,
+      saleMode: 'Pleno',
+    ));
   }
 
   @override

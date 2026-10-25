@@ -87,6 +87,7 @@ class StudySettings extends Equatable {
     this.excluded = const {},
     this.location = const {},
     this.notes,
+    this.commentary,
   });
 
   final Conservation? conservation;
@@ -105,6 +106,9 @@ class StudySettings extends Equatable {
   /// localizado do que o comparável).
   final Map<ComparableID, double> location;
   final String? notes;
+
+  /// Comentário de mercado (escrito pelo Gemini ou à mão) que vai para o PDF.
+  final String? commentary;
 
   factory StudySettings.fromMap(Map<String, dynamic>? data) {
     Set<String> ids(String key) => {
@@ -130,6 +134,7 @@ class StudySettings extends Equatable {
             }
           : const {},
       notes: emptyToNull(data?['notes']?.toString()),
+      commentary: emptyToNull(data?['commentary']?.toString()),
     );
   }
 
@@ -143,6 +148,7 @@ class StudySettings extends Equatable {
     'excluded': excluded.toList(),
     'location': location,
     'notes': notes ?? '',
+    'commentary': commentary ?? '',
   };
 
   StudySettings copyWith({
@@ -155,6 +161,7 @@ class StudySettings extends Equatable {
     Set<ComparableID>? excluded,
     Map<ComparableID, double>? location,
     String? notes,
+    String? commentary,
   }) => StudySettings(
     conservation: conservation ?? this.conservation,
     garage: garage ?? this.garage,
@@ -165,6 +172,7 @@ class StudySettings extends Equatable {
     excluded: excluded ?? this.excluded,
     location: location ?? this.location,
     notes: notes ?? this.notes,
+    commentary: commentary ?? this.commentary,
   );
 
   /// Liga ou desliga um comparável no estudo.
@@ -184,5 +192,6 @@ class StudySettings extends Equatable {
     excluded,
     location,
     notes,
+    commentary,
   ];
 }

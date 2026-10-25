@@ -95,7 +95,7 @@ void main() {
       name: 'Ana',
       type: ContactTypes.buyer,
       preferences: PropertyPreferences(
-          concelho: 'Almada', tipologia: 'T2', maxPrice: 300000),
+          concelhos: ['Almada'], tipologias: ['T2'], maxPrice: 300000),
     );
     const match = Property(
         id: 'a',
@@ -138,7 +138,7 @@ void main() {
           id: 's',
           name: 'S',
           type: ContactTypes.seller,
-          preferences: PropertyPreferences(concelho: 'Almada'));
+          preferences: PropertyPreferences(concelhos: ['Almada']));
       const empty = Contact(id: 'e', name: 'E');
       expect(matchingProperties(seller, [match]), isEmpty);
       expect(matchingProperties(empty, [match]), isEmpty);

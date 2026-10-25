@@ -26,8 +26,6 @@ import 'package:imovio/src/features/properties/presentation/property_edit_contro
 import 'package:imovio/src/features/properties/presentation/property_form_fields.dart';
 import 'package:imovio/src/features/properties/presentation/property_list_tile.dart';
 import 'package:imovio/src/features/properties/presentation/sale_summary_card.dart';
-import 'package:imovio/src/features/settings/data/settings_repository.dart';
-import 'package:imovio/src/features/settings/domain/user_settings.dart';
 import 'package:imovio/src/features/tasks/data/tasks_repository.dart';
 import 'package:imovio/src/features/tasks/domain/task.dart';
 import 'package:imovio/src/features/tasks/presentation/task_tile.dart';
@@ -335,8 +333,6 @@ class _PropertyDetailState extends ConsumerState<_PropertyDetail>
     DateTime? d(String key) => parseDate(_data[key].text);
     void setDate(String key, DateTime? v) =>
         setState(() => _data[key].text = v == null ? '' : formatIsoDate(v));
-    final settings =
-        ref.watch(settingsStreamProvider).value ?? const UserSettings();
     final expenses =
         ref.watch(expensesByPropertyProvider)[widget.property.id] ?? const [];
     Widget number(
@@ -367,17 +363,15 @@ class _PropertyDetailState extends ConsumerState<_PropertyDetail>
               'commissionPct',
               'commissionVal',
               'agentSplitPct',
+              'sharePct',
+              'vatPct',
               'dateStart',
               'dateEnd',
             ])
               _data[k],
           ]),
           builder: (context, _) => SaleSummaryCard(
-            summary: computeSaleSummary(
-              _data.toProperty(),
-              expenses,
-              defaultAgentSplitPct: settings.agentSplitPct,
-            ),
+            summary: computeSaleSummary(_data.toProperty(), expenses),
           ),
         ),
         gapH16,
@@ -394,6 +388,28 @@ class _PropertyDetailState extends ConsumerState<_PropertyDetail>
                 onChanged: (v) =>
                     setState(() => _data.saleStatus = v ?? _data.saleStatus),
               ),
+              TextDropdown(
+                label: 'Tipo de contrato',
+                value: _data.contractType,
+                options: PropertyOptions.contractTypes,
+                allowEmpty: true,
+                onChanged: (v) => setState(() => _data.contractType = v),
+              ),
+              TextDropdown(
+                label: 'Negócio em',
+                value: _data.saleMode,
+                options: PropertyOptions.saleModes,
+                optionLabels: PropertyOptions.saleModeLabels,
+                onChanged: (v) =>
+                    setState(() => _data.saleMode = v ?? _data.saleMode),
+              ),
+              if (_data.saleMode == 'Partilha')
+                number(
+                  'sharePct',
+                  'Parte da nossa agência na partilha',
+                  suffix: '%',
+                  helper: 'O resto fica para a outra agência',
+                ),
               number('price', 'Preço anunciado', suffix: '€'),
               number(
                 'salePrice',
@@ -403,9 +419,9 @@ class _PropertyDetailState extends ConsumerState<_PropertyDetail>
               ),
               number(
                 'commissionPct',
-                'Comissão da agência',
-                hint: '${settings.commissionPct}',
+                'Comissão',
                 suffix: '%',
+                helper: 'Sobre o valor de venda, sem IVA',
               ),
               number(
                 'commissionVal',
@@ -414,11 +430,17 @@ class _PropertyDetailState extends ConsumerState<_PropertyDetail>
                 helper: 'Calculado a partir do valor e da percentagem',
               ),
               number(
+                'vatPct',
+                'IVA da comissão',
+                suffix: '%',
+                helper: 'Normalmente 23 %',
+              ),
+              number(
                 'agentSplitPct',
                 'A sua parte da comissão',
-                hint: '${settings.agentSplitPct}',
+                hint: '50',
                 suffix: '%',
-                helper: 'Vazio usa ${settings.agentSplitPct} % (Configurações)',
+                helper: 'O que fica para si da comissão da agência',
               ),
               DateTimeField(
                 label: 'Data de Angariação',

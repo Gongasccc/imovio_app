@@ -31,14 +31,6 @@ class DashboardScreen extends ConsumerWidget {
                 PageHeader(
                   title: 'Dashboard',
                   subtitle: 'Visão geral do seu desempenho.',
-                  actions: [
-                    IconButton.outlined(
-                      tooltip: 'Configurações',
-                      icon: const Icon(Icons.settings_outlined),
-                      onPressed: () =>
-                          context.pushNamed(AppRoute.settings.name),
-                    ),
-                  ],
                 ),
                 gapH16,
                 AsyncValueWidget<DashboardKpis>(

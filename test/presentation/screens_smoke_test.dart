@@ -52,7 +52,7 @@ final _contacts = [
     type: ContactTypes.buyer,
     origin: 'idealista',
     preferences:
-        PropertyPreferences(concelho: 'Almada', tipologia: 'T2', maxPrice: 300000),
+        PropertyPreferences(concelhos: ['Almada'], tipologias: ['T2'], maxPrice: 300000),
   ),
   const Contact(id: 'c2', name: 'Ana Vendedora', type: ContactTypes.seller),
 ];
@@ -276,7 +276,7 @@ void main() {
     await tester.tap(find.text('3. Detalhes de Venda'));
     await tester.pumpAndSettle();
     await tester.enterText(
-        find.widgetWithText(TextFormField, 'Comissão da agência'), '4');
+        find.widgetWithText(TextFormField, 'Comissão'), '4');
     await tester.pump();
     expect(find.text('9960.00'), findsOneWidget);
   });

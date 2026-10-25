@@ -9,12 +9,13 @@ import 'package:imovio/src/common_widgets/section_card.dart';
 import 'package:imovio/src/constants/app_sizes.dart';
 import 'package:imovio/src/features/contacts/data/contacts_repository.dart';
 import 'package:imovio/src/features/contacts/domain/contact.dart';
+import 'package:imovio/src/features/contacts/presentation/contact_attachments_section.dart';
 import 'package:imovio/src/features/contacts/presentation/contact_edit_controller.dart';
+import 'package:imovio/src/features/contacts/presentation/preferences_editor.dart';
 import 'package:imovio/src/features/pipeline/data/deals_repository.dart';
 import 'package:imovio/src/features/pipeline/presentation/deal_tile.dart';
 import 'package:imovio/src/features/properties/application/property_matching.dart';
 import 'package:imovio/src/features/properties/data/properties_repository.dart';
-import 'package:imovio/src/features/properties/domain/property.dart';
 import 'package:imovio/src/features/properties/presentation/property_list_tile.dart';
 import 'package:imovio/src/features/tasks/data/tasks_repository.dart';
 import 'package:imovio/src/features/tasks/presentation/task_tile.dart';
@@ -69,8 +70,8 @@ class _ContactFormState extends ConsumerState<_ContactForm>
   late final Map<String, TextEditingController> _c;
   late String _type;
   late String _idType;
-  String? _prefTipo;
-  String? _prefTipologia;
+  late final _prefs = PreferencesController(
+      widget.contact?.preferences ?? const PropertyPreferences());
 
   bool get _isNew => widget.contact == null;
 
@@ -92,19 +93,15 @@ class _ContactFormState extends ConsumerState<_ContactForm>
       'zip': t(c?.zip),
       'city': t(c?.city),
       'notes': t(c?.notes),
-      'prefDistrito': t(c?.preferences.distrito),
-      'prefConcelho': t(c?.preferences.concelho),
-      'prefMaxPrice': t(c?.preferences.maxPrice?.toString()),
     };
     _type = c?.type ?? ContactTypes.buyer;
     _idType = c?.idType ?? IdDocumentTypes.all.first;
-    _prefTipo = c?.preferences.tipo;
-    _prefTipologia = c?.preferences.tipologia;
   }
 
   @override
   void dispose() {
     _tabs.dispose();
+    _prefs.dispose();
     for (final c in _c.values) {
       c.dispose();
     }
@@ -129,13 +126,8 @@ class _ContactFormState extends ConsumerState<_ContactForm>
         zip: _v('zip'),
         city: _v('city'),
         notes: _v('notes'),
-        preferences: PropertyPreferences(
-          distrito: _v('prefDistrito'),
-          concelho: _v('prefConcelho'),
-          tipo: _prefTipo,
-          tipologia: _prefTipologia,
-          maxPrice: parseNum(_c['prefMaxPrice']!.text),
-        ),
+        preferences: _prefs.value,
+        attachments: widget.contact?.attachments ?? const [],
         createdAt: widget.contact?.createdAt,
       );
 
@@ -321,57 +313,58 @@ class _ContactFormState extends ConsumerState<_ContactForm>
           icon: Icons.notes_outlined,
           child: _field('notes', 'Observações Gerais do Contacto', maxLines: 4),
         ),
+        gapH16,
+        if (widget.contact != null)
+          ContactAttachmentsSection(contact: widget.contact!)
+        else
+          const SectionCard(
+            title: 'Documentos',
+            icon: Icons.attach_file,
+            child: Text('Guarde o contacto para poder anexar documentos.'),
+          ),
       ],
     );
   }
 
   Widget _preferencesTab() {
     final properties = ref.watch(propertiesStreamProvider).value ?? const [];
-    final matches = widget.contact == null
-        ? const <Property>[]
-        : matchingProperties(widget.contact!, properties);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SectionCard(
-          title: 'O que procura',
-          icon: Icons.search,
-          child: FormGrid(children: [
-            _field('prefDistrito', 'Distrito', hint: 'Ex.: Setúbal'),
-            _field('prefConcelho', 'Concelho', hint: 'Ex.: Almada'),
-            TextDropdown(
-              label: 'Tipo de imóvel',
-              value: _prefTipo,
-              options: PropertyOptions.tipos,
-              allowEmpty: true,
-              onChanged: (v) => setState(() => _prefTipo = v),
-            ),
-            TextDropdown(
-              label: 'Tipologia',
-              value: _prefTipologia,
-              options: PropertyOptions.tipologias,
-              allowEmpty: true,
-              onChanged: (v) => setState(() => _prefTipologia = v),
-            ),
-            _field('prefMaxPrice', 'Preço máximo (€)',
-                keyboard: TextInputType.number),
-          ]),
-        ),
+        PreferencesEditor(controller: _prefs),
         gapH16,
-        SectionCard(
-          title: 'Imóveis compatíveis',
-          icon: Icons.auto_awesome_outlined,
-          child: widget.contact == null
-              ? const Text('Guarde o contacto para ver sugestões.')
-              : matches.isEmpty
+        // As sugestões atualizam-se enquanto se escolhem as preferências.
+        ValueListenableBuilder(
+          valueListenable: _prefs,
+          builder: (context, prefs, _) {
+            final draft = Contact(
+              id: widget.contact?.id ?? '',
+              name: '',
+              type: _type,
+              preferences: prefs,
+            );
+            final matches = rankMatchingProperties(draft, properties);
+            return SectionCard(
+              title: 'Imóveis compatíveis (${matches.length})',
+              icon: Icons.auto_awesome_outlined,
+              child: matches.isEmpty
                   ? const Text(
-                      'Sem imóveis compatíveis. As sugestões usam as '
-                      'preferências guardadas e o tipo de contacto.')
+                      'Sem imóveis compatíveis. As sugestões usam o tipo de '
+                      'negócio, imóvel, tipologia, zona, preço, área e casas de '
+                      'banho; as comodidades servem para ordenar.')
                   : Column(
                       children: [
-                        for (final p in matches) PropertyListTile(property: p),
+                        for (final m in matches)
+                          PropertyListTile(
+                            property: m.property,
+                            subtitleExtra: m.extrasWanted == 0
+                                ? null
+                                : '${m.extrasMatched}/${m.extrasWanted} comodidades',
+                          ),
                       ],
                     ),
+            );
+          },
         ),
         if (widget.contact != null)
           TeamMatchesSection(contact: widget.contact!),
