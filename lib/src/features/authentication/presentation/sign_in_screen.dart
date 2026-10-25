@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:imovio/src/constants/app_sizes.dart';
 import 'package:imovio/src/constants/app_theme.dart';
 import 'package:imovio/src/features/authentication/presentation/sign_in_controller.dart';
@@ -87,7 +88,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                         style: SegmentedButton.styleFrom(
                           visualDensity: VisualDensity.compact,
                           padding: const EdgeInsets.symmetric(horizontal: 4),
-                          textStyle: const TextStyle(fontSize: 12.5),
+                          textStyle: GoogleFonts.poppins(fontSize: 12.5),
                         ),
                         onSelectionChanged: (s) => _setMode(s.first),
                       ),
