@@ -591,6 +591,7 @@ class MarketStudyPdf {
                   .round() *
               (study.isRental ? 10 : 1000);
     final notes = study.settings.notes;
+    final commentary = study.settings.commentary;
     return [
       pw.Bullet(
         text:
@@ -632,6 +633,18 @@ class MarketStudyPdf {
           style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
         ),
         pw.Text(notes, style: const pw.TextStyle(fontSize: 10)),
+      ],
+      if (commentary != null && commentary.isNotEmpty) ...[
+        pw.SizedBox(height: 8),
+        pw.Text(
+          'Análise de mercado',
+          style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+        ),
+        pw.SizedBox(height: 2),
+        pw.Text(
+          commentary,
+          style: const pw.TextStyle(fontSize: 10, lineSpacing: 2),
+        ),
       ],
     ];
   }
