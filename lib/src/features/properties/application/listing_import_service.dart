@@ -2,159 +2,101 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:imovio/src/features/properties/application/listing_parser.dart';
+
+export 'package:imovio/src/features/properties/application/listing_parser.dart'
+    show ImportedListing;
 
 part 'listing_import_service.g.dart';
 
-/// Dados extraídos de um anúncio público.
-class ImportedListing {
-  const ImportedListing({
-    this.title,
-    this.description,
-    this.price,
-    this.image,
-    this.negocio,
-    this.tipo,
-    this.tipologia,
-  });
-  final String? title;
-  final String? description;
-  final num? price;
-  final String? image;
-  final String? negocio;
-  final String? tipo;
-  final String? tipologia;
-
-  bool get isEmpty => title == null && description == null && image == null;
-}
-
-/// Lê o título, descrição, imagem e preço de um anúncio, como a função
-/// `extrairDadosLink` da app original: primeiro via Microlink, depois lendo
-/// as meta tags do HTML via AllOrigins.
+/// Importa um anúncio a partir do link. A página é lida através de serviços
+/// públicos (o browser não pode ler outros sites diretamente): primeiro o
+/// Microlink, depois o AllOrigins e o CodeTabs. O [ListingParser] analisa o
+/// HTML e os metadados do Microlink completam o que faltar.
 ///
-/// Diferença: quando não encontra preço, deixa-o vazio em vez de inventar
-/// 350 000 €.
+/// Quando o preço não aparece no anúncio, fica vazio (a app original
+/// inventava 350 000 €).
 class ListingImportService {
   ListingImportService(this._client);
   final http.Client _client;
 
+  static const _timeout = Duration(seconds: 15);
+
   Future<ImportedListing> extract(String url) async {
-    String? title, description, image;
+    final html = await _fetchHtml(url);
+    if (html != null) return ListingParser.parse(html);
+    // Sem HTML: pelo menos título, descrição e capa via metadados.
+    return _microlink(url);
+  }
 
-    try {
-      final res = await _client.get(Uri.parse(
-          'https://api.microlink.io/?url=${Uri.encodeComponent(url)}'));
-      if (res.statusCode == 200) {
+  /// Tenta vários proxies até um devolver a página.
+  Future<String?> _fetchHtml(String url) async {
+    final encoded = Uri.encodeComponent(url);
+    final attempts = <Future<String?> Function()>[
+      // Microlink devolve o HTML completo da página (inclui o JSON-LD).
+      () async {
+        final res = await _client
+            .get(Uri.parse('https://api.microlink.io/?url=$encoded'
+                '&data.html.selector=html&data.html.attr=html&meta=false'))
+            .timeout(const Duration(seconds: 30));
+        if (res.statusCode != 200) return null;
         final json = jsonDecode(res.body) as Map<String, dynamic>;
-        if (json['status'] == 'success' && json['data'] is Map) {
-          final data = json['data'] as Map<String, dynamic>;
-          title = _clean(data['title']);
-          description = _clean(data['description']);
-          final img = data['image'];
-          if (img is Map) image = _clean(img['url']);
-        }
-      }
-    } catch (_) {
-      // Tenta a segunda fonte.
-    }
-
-    if (title == null || image == null) {
+        final data = json['data'];
+        return data is Map ? data['html'] as String? : null;
+      },
+      () async {
+        final res = await _client
+            .get(Uri.parse('https://api.allorigins.win/get?url=$encoded'))
+            .timeout(_timeout);
+        if (res.statusCode != 200) return null;
+        return (jsonDecode(res.body) as Map<String, dynamic>)['contents']
+            as String?;
+      },
+      () async {
+        final res = await _client
+            .get(Uri.parse('https://api.codetabs.com/v1/proxy?quest=$encoded'))
+            .timeout(_timeout);
+        return res.statusCode == 200 ? utf8.decode(res.bodyBytes) : null;
+      },
+    ];
+    for (final attempt in attempts) {
       try {
-        final res = await _client.get(Uri.parse(
-            'https://api.allorigins.win/get?url=${Uri.encodeComponent(url)}'));
-        if (res.statusCode == 200) {
-          final json = jsonDecode(res.body) as Map<String, dynamic>;
-          final html = json['contents'] as String? ?? '';
-          title ??= metaContent(html, 'og:title') ?? _htmlTitle(html);
-          image ??= metaContent(html, 'og:image') ??
-              metaContent(html, 'twitter:image');
-          description ??= metaContent(html, 'og:description');
+        final html = await attempt();
+        // Páginas de captcha ou bloqueio são curtas e sem meta tags.
+        if (html != null && html.length > 2000 && html.contains('<meta')) {
+          return html;
         }
       } catch (_) {
-        // Sem dados extra.
+        // Tenta o seguinte.
       }
-    }
-
-    return fromText(title: title, description: description, image: image);
-  }
-
-  /// Deduz preço, negócio, tipo e tipologia a partir do texto do anúncio.
-  static ImportedListing fromText({
-    String? title,
-    String? description,
-    String? image,
-  }) {
-    final text = '${title ?? ''} ${description ?? ''}';
-    final lower = text.toLowerCase();
-    num? price;
-    final match =
-        RegExp(r'(\d{1,3}(?:[.\s]\d{3})+|\d{4,})\s*€').firstMatch(text);
-    if (match != null) {
-      price = num.tryParse(match.group(1)!.replaceAll(RegExp(r'[.\s]'), ''));
-    }
-    final tipologia =
-        RegExp(r'\bT([0-9])\b', caseSensitive: false).firstMatch(text);
-    String? tipo;
-    if (lower.contains('terreno')) {
-      tipo = 'Terreno';
-    } else if (lower.contains('moradia')) {
-      tipo = 'Moradia';
-    } else if (lower.contains('apartamento')) {
-      tipo = 'Apartamento';
-    } else if (title != null) {
-      tipo = 'Casa';
-    }
-    // A app original cortava o título no primeiro "|" ou "-".
-    final shortTitle = title?.split('|').first.split(' - ').first.trim();
-    return ImportedListing(
-      title: (shortTitle?.isEmpty ?? true) ? title : shortTitle,
-      description: description,
-      price: price,
-      image: image,
-      negocio: title == null && description == null
-          ? null
-          : (lower.contains('arrenda') ? 'Arrendamento' : 'Venda'),
-      tipo: tipo,
-      tipologia: tipologia == null
-          ? null
-          : (int.parse(tipologia.group(1)!) >= 5
-              ? 'T5+'
-              : 'T${tipologia.group(1)}'),
-    );
-  }
-
-  static String? metaContent(String html, String property) {
-    final escaped = RegExp.escape(property);
-    final patterns = [
-      RegExp('<meta[^>]+(?:property|name)=["\']$escaped["\'][^>]*content=["\']([^"\']*)["\']',
-          caseSensitive: false),
-      RegExp('<meta[^>]+content=["\']([^"\']*)["\'][^>]*(?:property|name)=["\']$escaped["\']',
-          caseSensitive: false),
-    ];
-    for (final p in patterns) {
-      final m = p.firstMatch(html);
-      if (m != null) return _clean(_unescape(m.group(1)));
     }
     return null;
   }
 
-  static String? _htmlTitle(String html) {
-    final m = RegExp(r'<title[^>]*>([^<]*)</title>', caseSensitive: false)
-        .firstMatch(html);
-    return _clean(_unescape(m?.group(1)));
-  }
-
-  static String? _unescape(String? s) => s
-      ?.replaceAll('&amp;', '&')
-      .replaceAll('&quot;', '"')
-      .replaceAll('&#39;', "'")
-      .replaceAll('&lt;', '<')
-      .replaceAll('&gt;', '>')
-      .replaceAll('&euro;', '€')
-      .replaceAll('&nbsp;', ' ');
-
-  static String? _clean(Object? s) {
-    final t = s?.toString().trim();
-    return (t == null || t.isEmpty) ? null : t;
+  Future<ImportedListing> _microlink(String url) async {
+    try {
+      final res = await _client
+          .get(Uri.parse(
+              'https://api.microlink.io/?url=${Uri.encodeComponent(url)}'))
+          .timeout(_timeout);
+      if (res.statusCode != 200) return const ImportedListing();
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      if (json['status'] != 'success' || json['data'] is! Map) {
+        return const ImportedListing();
+      }
+      final data = json['data'] as Map<String, dynamic>;
+      final img = data['image'];
+      final title = data['title'] as String?;
+      final description = data['description'] as String?;
+      return ListingParser.parseText(title: title, description: description)
+          .merge(ImportedListing(
+        images: [
+          if (img is Map && img['url'] is String) img['url'] as String,
+        ],
+      ));
+    } catch (_) {
+      return const ImportedListing();
+    }
   }
 }
 

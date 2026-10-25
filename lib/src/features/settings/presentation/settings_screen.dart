@@ -48,6 +48,19 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 ),
                 gapH16,
+                const SectionCard(
+                  title: 'Instalar no telemóvel',
+                  icon: Icons.install_mobile_outlined,
+                  child: Text(
+                    'iPhone: abra a app no Safari, toque em Partilhar e '
+                    'escolha "Adicionar ao ecrã principal".\n'
+                    'Android: no Chrome, toque no menu ⋮ e escolha '
+                    '"Instalar app".\n'
+                    'A app abre em ecrã inteiro, com ícone próprio, e mantém '
+                    'a sessão iniciada.',
+                  ),
+                ),
+                gapH16,
                 SectionCard(
                   title: 'Sessão',
                   icon: Icons.power_settings_new,

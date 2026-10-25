@@ -1,35 +1,24 @@
 {
-    "name": "imovio",
-    "short_name": "imovio",
+    "name": "Imovio - CRM Imobiliário",
+    "short_name": "Imovio",
+    "id": "/imovio_app/",
     "start_url": ".",
+    "scope": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#121212",
+    "theme_color": "#121212",
+    "description": "CRM imobiliário: contactos, imóveis, pipeline e tarefas.",
+    "lang": "pt-PT",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
-        {
-            "src": "icons/Icon-192.png",
-            "sizes": "192x192",
-            "type": "image/png"
-        },
-        {
-            "src": "icons/Icon-512.png",
-            "sizes": "512x512",
-            "type": "image/png"
-        },
-        {
-            "src": "icons/Icon-maskable-192.png",
-            "sizes": "192x192",
-            "type": "image/png",
-            "purpose": "maskable"
-        },
-        {
-            "src": "icons/Icon-maskable-512.png",
-            "sizes": "512x512",
-            "type": "image/png",
-            "purpose": "maskable"
-        }
+        { "src": "icons/Icon-192.png", "sizes": "192x192", "type": "image/png" },
+        { "src": "icons/Icon-512.png", "sizes": "512x512", "type": "image/png" },
+        { "src": "icons/Icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+        { "src": "icons/Icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    ],
+    "shortcuts": [
+        { "name": "Novo imóvel", "url": "./#/properties/new", "icons": [{ "src": "icons/Icon-192.png", "sizes": "192x192" }] },
+        { "name": "Nova tarefa", "url": "./#/tasks/new", "icons": [{ "src": "icons/Icon-192.png", "sizes": "192x192" }] }
     ]
 }

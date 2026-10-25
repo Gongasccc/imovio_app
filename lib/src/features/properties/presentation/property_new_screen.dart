@@ -57,11 +57,11 @@ class _PropertyNewScreenState extends ConsumerState<PropertyNewScreen> {
       return;
     }
     setState(() => _data.applyImport(listing, url));
+    final photos = listing.images.length;
     showSnack(
       context,
-      listing.price == null
-          ? 'Dados extraídos. O preço não foi encontrado: preencha-o.'
-          : 'Capa e dados do imóvel extraídos com sucesso!',
+      '${listing.filledCount} campos e $photos foto(s) importados.'
+      '${listing.price == null ? ' O preço não foi encontrado: preencha-o.' : ' Reveja antes de guardar.'}',
     );
   }
 
@@ -133,8 +133,10 @@ class _PropertyNewScreenState extends ConsumerState<PropertyNewScreen> {
                         ]),
                         gapH8,
                         Text(
-                          'Lê o título, descrição, foto e preço públicos do '
-                          'anúncio e preenche os campos abaixo.',
+                          'Lê preço, áreas, quartos, WC, localização, '
+                          'características e fotos do anúncio e preenche os '
+                          'campos abaixo. Alguns portais bloqueiam a leitura '
+                          'automática: nesse caso, preencha o que faltar.',
                           style: TextStyle(
                               fontSize: 12, color: scheme.onSurfaceVariant),
                         ),

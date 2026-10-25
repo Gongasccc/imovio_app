@@ -54,13 +54,41 @@ class PropertyFormData {
 
   String? _s(String key) => emptyToNull(text[key]!.text);
 
+  /// Preenche os campos com o que foi lido do anúncio. Campos não
+  /// encontrados ficam como estavam.
   void applyImport(ImportedListing l, String url) {
-    if (l.title != null) text['title']!.text = l.title!;
-    if (l.price != null) text['price']!.text = l.price.toString();
-    if (l.description != null) text['desc']!.text = l.description!;
-    if (l.image != null && !images.contains(l.image)) {
-      images = [l.image!, ...images];
+    void set(String key, Object? value) {
+      if (value != null) text[key]!.text = value.toString();
     }
+
+    set('title', l.title);
+    set('price', l.price);
+    set('desc', l.description);
+    set('areaBruta', l.areaBruta);
+    set('areaUtil', l.areaUtil);
+    set('areaTerreno', l.areaTerreno);
+    set('quartos', l.quartos);
+    set('wc', l.wc);
+    set('cp', l.cp);
+    set('distrito', l.distrito);
+    set('concelho', l.concelho);
+    set('freguesia', l.freguesia);
+    set('morada', l.morada);
+    final extras = [
+      ...l.caracteristicas,
+      if (l.energyCertificate != null)
+        'certificado energético ${l.energyCertificate}',
+      if (l.year != null) 'construído em ${l.year}',
+    ];
+    if (extras.isNotEmpty) {
+      final current = text['caracteristicas']!.text.trim();
+      final merged = {
+        ...current.split(',').map((f) => f.trim()).where((f) => f.isNotEmpty),
+        ...extras,
+      };
+      text['caracteristicas']!.text = merged.join(', ');
+    }
+    images = {...l.images, ...images}.toList();
     negocio = l.negocio ?? negocio;
     tipo = l.tipo ?? tipo;
     tipologia = l.tipologia ?? tipologia;

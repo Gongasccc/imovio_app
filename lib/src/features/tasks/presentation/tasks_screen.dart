@@ -6,6 +6,7 @@ import 'package:imovio/src/common_widgets/empty_placeholder.dart';
 import 'package:imovio/src/common_widgets/page_header.dart';
 import 'package:imovio/src/common_widgets/responsive_center.dart';
 import 'package:imovio/src/constants/app_sizes.dart';
+import 'package:imovio/src/features/settings/data/local_preferences.dart';
 import 'package:imovio/src/features/tasks/data/tasks_repository.dart';
 import 'package:imovio/src/features/tasks/domain/task.dart';
 import 'package:imovio/src/features/tasks/presentation/task_tile.dart';
@@ -22,7 +23,7 @@ class TasksScreen extends ConsumerStatefulWidget {
 class _TasksScreenState extends ConsumerState<TasksScreen> {
   String? _status;
   String? _category;
-  var _calendar = false;
+  late var _calendar = ref.read(localPreferencesProvider).tasksCalendarView;
 
   @override
   Widget build(BuildContext context) {
@@ -57,8 +58,12 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                             label: Text('Calendário')),
                       ],
                       selected: {_calendar},
-                      onSelectionChanged: (s) =>
-                          setState(() => _calendar = s.first),
+                      onSelectionChanged: (s) {
+                        setState(() => _calendar = s.first);
+                        ref
+                            .read(localPreferencesProvider)
+                            .setTasksCalendarView(s.first);
+                      },
                     ),
                   ],
                 ),

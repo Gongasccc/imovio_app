@@ -9,6 +9,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:imovio/src/features/settings/data/local_preferences.dart';
 import 'package:imovio/src/features/authentication/data/firebase_auth_repository.dart';
 import 'package:imovio/src/features/contacts/data/contacts_repository.dart';
 import 'package:imovio/src/features/contacts/domain/contact.dart';
@@ -93,8 +95,11 @@ final _tasks = [
   const Task(id: 't3', title: 'Ligar ao banco', status: TaskStatuses.done),
 ];
 
+late SharedPreferences _prefs;
+
 Widget _app(Widget child) => ProviderScope(
       overrides: [
+        sharedPreferencesProvider.overrideWithValue(_prefs),
         firestoreProvider.overrideWithValue(_MockFirestore()),
         firebaseStorageProvider.overrideWithValue(_MockStorage()),
         currentUidProvider.overrideWithValue('uid-teste'),
@@ -123,6 +128,8 @@ void main() {
   setUpAll(() async {
     Intl.defaultLocale = 'pt_PT';
     await initializeDateFormatting('pt_PT');
+    SharedPreferences.setMockInitialValues({});
+    _prefs = await SharedPreferences.getInstance();
   });
 
   final screens = <String, Widget>{

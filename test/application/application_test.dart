@@ -4,7 +4,7 @@ import 'package:imovio/src/features/contacts/domain/contact.dart';
 import 'package:imovio/src/features/dashboard/application/dashboard_service.dart';
 import 'package:imovio/src/features/pipeline/domain/deal.dart';
 import 'package:imovio/src/features/properties/application/commission.dart';
-import 'package:imovio/src/features/properties/application/listing_import_service.dart';
+import 'package:imovio/src/features/properties/application/listing_parser.dart';
 import 'package:imovio/src/features/properties/application/property_matching.dart';
 import 'package:imovio/src/features/properties/domain/property.dart';
 import 'package:imovio/src/features/tasks/domain/task.dart';
@@ -18,7 +18,7 @@ void main() {
 
   group('importação por link', () {
     test('deduz preço, tipo, negócio e tipologia do texto', () {
-      final l = ListingImportService.fromText(
+      final l = ListingParser.parseText(
         title: 'Apartamento T2 em Corroios | iad Portugal',
         description: 'Apartamento para venda por 249.000 € com 80m2',
       );
@@ -30,18 +30,59 @@ void main() {
     });
 
     test('sem preço no anúncio fica vazio (não inventa 350 000 €)', () {
-      final l = ListingImportService.fromText(title: 'Moradia para arrendar');
+      final l = ListingParser.parseText(title: 'Moradia para arrendar');
       expect(l.price, isNull);
       expect(l.negocio, 'Arrendamento');
       expect(l.tipo, 'Moradia');
     });
 
+    test('lê dados estruturados JSON-LD e junta fotos repetidas', () {
+      const html = '''
+<html><head>
+<meta property="og:title" content="Moradia T4 com piscina | Portal">
+<meta property="og:image" content="https://img.portal.pt/f/1.jpg?w=1200">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[{"@type":"Organization","name":"Portal"},
+ {"@type":"SingleFamilyResidence","name":"Moradia T4 com piscina",
+  "numberOfBedrooms":4,"numberOfBathroomsTotal":3,
+  "floorSize":{"@type":"QuantitativeValue","value":"210","unitCode":"MTK"},
+  "address":{"addressLocality":"Palmela","addressRegion":"Setúbal",
+   "postalCode":"2950-123","streetAddress":"Rua das Flores 5"},
+  "image":["https://img.portal.pt/f/1.jpg?w=390","https://img.portal.pt/f/2.jpg"],
+  "offers":{"@type":"Offer","price":"495.000","priceCurrency":"EUR"}}]}
+</script></head>
+<body><p>Área bruta: 260 m² · Área do terreno: 800 m² · Certificado energético: B-</p>
+<p>Garagem para 2 carros, jardim e piscina. Ano de construção: 2008</p>
+<img src="https://img.portal.pt/logo.jpg"></body></html>''';
+      final l = ListingParser.parse(html);
+      expect(l.title, 'Moradia T4 com piscina');
+      expect(l.price, 495000);
+      expect(l.quartos, 4);
+      expect(l.wc, 3);
+      expect(l.areaUtil, 210);
+      expect(l.areaBruta, 260);
+      expect(l.areaTerreno, 800);
+      expect(l.concelho, 'Palmela');
+      expect(l.distrito, 'Setúbal');
+      expect(l.cp, '2950-123');
+      expect(l.morada, 'Rua das Flores 5');
+      expect(l.tipo, 'Moradia');
+      expect(l.tipologia, 'T4');
+      expect(l.energyCertificate, 'B-');
+      expect(l.year, 2008);
+      expect(l.caracteristicas, containsAll(['garagem', 'jardim', 'piscina']));
+      expect(l.images, [
+        'https://img.portal.pt/f/1.jpg?w=1200',
+        'https://img.portal.pt/f/2.jpg',
+      ]);
+    });
+
     test('lê meta tags og', () {
       const html = '<meta property="og:image" content="https://x/a.jpg">'
           '<meta content="Casa &amp; jardim" property="og:title">';
-      expect(ListingImportService.metaContent(html, 'og:image'),
+      expect(ListingParser.metaContent(html, 'og:image'),
           'https://x/a.jpg');
-      expect(ListingImportService.metaContent(html, 'og:title'),
+      expect(ListingParser.metaContent(html, 'og:title'),
           'Casa & jardim');
     });
   });

@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:imovio/src/constants/app_sizes.dart';
 import 'package:imovio/src/constants/app_theme.dart';
 import 'package:imovio/src/features/authentication/presentation/sign_in_controller.dart';
+import 'package:imovio/src/features/settings/data/local_preferences.dart';
 
 class SignInScreen extends ConsumerStatefulWidget {
   const SignInScreen({super.key});
@@ -14,7 +15,8 @@ class SignInScreen extends ConsumerStatefulWidget {
 
 class _SignInScreenState extends ConsumerState<SignInScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _email = TextEditingController();
+  late final _email = TextEditingController(
+      text: ref.read(localPreferencesProvider).lastEmail);
   final _password = TextEditingController();
   var _mode = AuthMode.login;
   var _obscure = true;
@@ -33,6 +35,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    await ref.read(localPreferencesProvider).setLastEmail(_email.text.trim());
     await ref.read(signInControllerProvider.notifier).submit(
           mode: _mode,
           email: _email.text.trim(),
