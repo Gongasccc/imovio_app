@@ -128,6 +128,8 @@ class ScaffoldWithNestedNavigation extends StatelessWidget {
         titleSpacing: 0,
         title: const _Logo(),
       ),
+      // Deslizar da esquerda para a direita (nos primeiros 80 px) abre o menu.
+      drawerEdgeDragWidth: 80,
       drawer: NavigationDrawer(
         selectedIndex: current,
         onDestinationSelected: (i) {

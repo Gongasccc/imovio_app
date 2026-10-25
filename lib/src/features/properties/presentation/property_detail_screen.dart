@@ -257,6 +257,8 @@ class _PropertyDetailState extends ConsumerState<_PropertyDetail>
           ],
           body: TabBarView(
             controller: _tabs,
+            // Deslizar na página é o gesto de voltar; as abas mudam com toque.
+            physics: const NeverScrollableScrollPhysics(),
             children: [
               _tab(
                 Column(

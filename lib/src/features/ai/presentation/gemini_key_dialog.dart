@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:imovio/src/common_widgets/responsive_center.dart';
+import 'package:imovio/src/common_widgets/section_card.dart';
 import 'package:imovio/src/constants/app_sizes.dart';
 import 'package:imovio/src/features/ai/data/gemini_client.dart';
 import 'package:imovio/src/features/ai/data/gemini_repository.dart';
@@ -7,25 +10,28 @@ import 'package:imovio/src/features/authentication/data/firebase_auth_repository
 import 'package:imovio/src/utils/dialogs.dart';
 import 'package:imovio/src/utils/launcher.dart';
 
-/// Pede a chave do Gemini, testa-a e guarda-a na conta. Devolve true se
-/// ficou uma chave válida guardada.
+/// Abre a página da chave do Gemini, que a testa e guarda na conta. Devolve
+/// true se ficou uma chave válida guardada.
+///
+/// É uma página inteira (e não um diálogo) para o teclado do telemóvel, o
+/// colar e o voltar atrás com o gesto funcionarem como numa app normal.
 Future<bool> showGeminiKeyDialog(BuildContext context) async =>
-    await showDialog<bool>(
-      context: context,
-      builder: (_) => const _GeminiKeyDialog(),
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const GeminiKeyScreen()),
     ) ??
     false;
 
-class _GeminiKeyDialog extends ConsumerStatefulWidget {
-  const _GeminiKeyDialog();
+class GeminiKeyScreen extends ConsumerStatefulWidget {
+  const GeminiKeyScreen({super.key});
 
   @override
-  ConsumerState<_GeminiKeyDialog> createState() => _GeminiKeyDialogState();
+  ConsumerState<GeminiKeyScreen> createState() => _GeminiKeyScreenState();
 }
 
-class _GeminiKeyDialogState extends ConsumerState<_GeminiKeyDialog> {
+class _GeminiKeyScreenState extends ConsumerState<GeminiKeyScreen> {
   final _key = TextEditingController();
-  bool _busy = false;
+  var _obscure = false;
+  var _busy = false;
   String? _error;
 
   @override
@@ -40,31 +46,71 @@ class _GeminiKeyDialogState extends ConsumerState<_GeminiKeyDialog> {
     super.dispose();
   }
 
+  Future<void> _paste() async {
+    try {
+      final data = await Clipboard.getData(Clipboard.kTextPlain);
+      final text = data?.text?.trim() ?? '';
+      if (text.isEmpty) {
+        if (mounted) {
+          showSnack(context,
+              'A área de transferência está vazia. Copie a chave no AI Studio.');
+        }
+        return;
+      }
+      setState(() {
+        _key.text = text;
+        _error = null;
+      });
+    } catch (_) {
+      // Alguns browsers não deixam ler a área de transferência: resta o
+      // "colar" do próprio campo (toque longo).
+      if (mounted) {
+        showSnack(context,
+            'Não foi possível colar automaticamente. Toque e mantenha no campo e escolha "Colar".');
+      }
+    }
+  }
+
   Future<void> _save() async {
     final key = _key.text.trim();
-    if (key.isEmpty) return;
+    if (key.isEmpty) {
+      setState(() => _error = 'Cole a chave primeiro.');
+      return;
+    }
+    FocusScope.of(context).unfocus();
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
       // Pedido mínimo para confirmar que a chave funciona.
-      await GeminiClient(
-        ref.read(geminiHttpClientProvider),
-        key,
-      ).generate('Responde só: ok');
+      await GeminiClient(ref.read(geminiHttpClientProvider), key)
+          .generate('Responde só: ok');
       await ref
           .read(geminiKeyRepositoryProvider)
           .setKey(uid: ref.read(currentUidProvider), key: key);
-      if (mounted) Navigator.of(context).pop(true);
+      if (mounted) {
+        showSnack(context, 'Chave do Gemini guardada');
+        Navigator.of(context).pop(true);
+      }
     } catch (e) {
-      if (mounted) setState(() => _error = '$e');
+      if (mounted) {
+        setState(() => _error =
+            'A chave não funcionou. Confirme que a copiou inteira.\n($e)');
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
   Future<void> _remove() async {
+    final ok = await showConfirmDialog(
+      context,
+      title: 'Remover chave',
+      message: 'As funções com IA deixam de funcionar até guardar outra chave.',
+      confirmLabel: 'Remover',
+    );
+    if (!ok) return;
     await ref
         .read(geminiKeyRepositoryProvider)
         .setKey(uid: ref.read(currentUidProvider), key: null);
@@ -76,74 +122,178 @@ class _GeminiKeyDialogState extends ConsumerState<_GeminiKeyDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final hasKey = ref.watch(geminiKeyProvider).value != null;
-    return AlertDialog(
-      title: const Text('Ligar o Gemini (grátis)'),
-      content: SizedBox(
-        width: 520,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'O Gemini pesquisa no Google os preços de casas semelhantes na '
-              'zona e escreve o comentário de mercado. O plano gratuito da '
-              'Google chega para uso normal.',
-            ),
-            gapH12,
-            const Text(
-              '1. Abra o Google AI Studio com a sua conta Google.\n'
-              '2. Carregue em "Create API key".\n'
-              '3. Copie a chave e cole-a aqui.',
-            ),
-            TextButton.icon(
-              icon: const Icon(Icons.open_in_new),
-              label: const Text('Abrir Google AI Studio'),
-              onPressed: () => openExternalUrl(GeminiClient.keyUrl),
-            ),
-            TextField(
-              controller: _key,
-              obscureText: true,
-              autocorrect: false,
-              enableSuggestions: false,
-              decoration: InputDecoration(
-                labelText: 'Chave da API do Gemini',
-                errorText: _error,
-                errorMaxLines: 3,
+    final hasKey = (ref.watch(geminiKeyProvider).value ?? '').isNotEmpty;
+    final scheme = Theme.of(context).colorScheme;
+    Widget step(int n, String text, {Widget? action}) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                radius: 12,
+                backgroundColor: scheme.primary,
+                child: Text('$n',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: scheme.onPrimary)),
               ),
-              onSubmitted: (_) => _save(),
+              gapW12,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(text),
+                    ),
+                    ?action,
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Chave do Gemini'),
+        actions: [
+          if (hasKey)
+            IconButton(
+              tooltip: 'Remover chave',
+              icon: const Icon(Icons.delete_outline),
+              onPressed: _busy ? null : _remove,
             ),
-            gapH8,
-            Text(
-              'A chave fica guardada só na sua conta. No plano gratuito a '
-              'Google pode usar os pedidos para melhorar os produtos dela; '
-              'os pedidos levam a zona e as características do imóvel, sem '
-              'dados de clientes.',
-              style: Theme.of(context).textTheme.bodySmall,
+          gapW8,
+        ],
+      ),
+      body: ListView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        children: [
+          ResponsiveCenter(
+            maxContentWidth: 640,
+            padding: const EdgeInsets.all(Sizes.p16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Uma só chave serve toda a app: estudo de mercado e '
+                  'importação de anúncios por link. É gratuita.',
+                  style: TextStyle(color: scheme.onSurfaceVariant),
+                ),
+                gapH16,
+                SectionCard(
+                  title: 'Como obter a chave',
+                  icon: Icons.help_outline,
+                  child: Column(
+                    children: [
+                      step(
+                        1,
+                        'Abra o Google AI Studio e entre com a sua conta Google.',
+                        action: Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton.icon(
+                            icon: const Icon(Icons.open_in_new, size: 18),
+                            label: const Text('Abrir Google AI Studio'),
+                            onPressed: () =>
+                                openExternalUrl(GeminiClient.keyUrl),
+                          ),
+                        ),
+                      ),
+                      step(2, 'Carregue em "Create API key" (Criar chave).'),
+                      step(3, 'Copie a chave (começa por "AIza").'),
+                      step(4, 'Volte aqui e carregue em "Colar".'),
+                    ],
+                  ),
+                ),
+                gapH16,
+                SectionCard(
+                  title: 'A sua chave',
+                  icon: Icons.key_outlined,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      TextField(
+                        controller: _key,
+                        obscureText: _obscure,
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        enableInteractiveSelection: true,
+                        keyboardType: TextInputType.visiblePassword,
+                        maxLines: 1,
+                        style: const TextStyle(fontFamily: 'monospace'),
+                        decoration: InputDecoration(
+                          hintText: 'AIza...',
+                          errorText: _error,
+                          errorMaxLines: 4,
+                          suffixIcon: IconButton(
+                            tooltip: _obscure ? 'Mostrar' : 'Esconder',
+                            icon: Icon(_obscure
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined),
+                            onPressed: () =>
+                                setState(() => _obscure = !_obscure),
+                          ),
+                        ),
+                        onChanged: (_) => setState(() => _error = null),
+                        onSubmitted: (_) => _save(),
+                      ),
+                      gapH12,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              icon: const Icon(Icons.content_paste),
+                              label: const Text('Colar'),
+                              onPressed: _busy ? null : _paste,
+                            ),
+                          ),
+                          gapW8,
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              icon: const Icon(Icons.clear),
+                              label: const Text('Limpar'),
+                              onPressed: _busy
+                                  ? null
+                                  : () => setState(() {
+                                        _key.clear();
+                                        _error = null;
+                                      }),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                gapH16,
+                Text(
+                  'A chave fica guardada só na sua conta. No plano gratuito a '
+                  'Google pode usar os pedidos para melhorar os produtos dela; '
+                  'os pedidos levam a zona e as características do imóvel, '
+                  'sem dados de clientes.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
             ),
-          ],
+          ),
+        ],
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(Sizes.p12),
+          child: FilledButton(
+            onPressed: _busy ? null : _save,
+            child: _busy
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Testar e guardar'),
+          ),
         ),
       ),
-      actions: [
-        if (hasKey)
-          TextButton(
-            onPressed: _busy ? null : _remove,
-            child: const Text('Remover'),
-          ),
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: _busy ? null : _save,
-          child: _busy
-              ? const SizedBox.square(
-                  dimension: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Testar e guardar'),
-        ),
-      ],
     );
   }
 }

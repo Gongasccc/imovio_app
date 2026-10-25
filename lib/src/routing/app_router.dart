@@ -63,8 +63,10 @@ const _protectedPrefixes = [
 ];
 
 /// Ecrã de edição em modo diálogo (ecrã inteiro), acima da navegação.
-Page<void> _dialogPage(Widget child) =>
-    MaterialPage(fullscreenDialog: true, child: child);
+///
+/// Página normal (não "fullscreenDialog") para o gesto de deslizar da
+/// esquerda para a direita voltar atrás, como nas apps do telemóvel.
+Page<void> _dialogPage(Widget child) => MaterialPage(child: child);
 
 @riverpod
 GoRouter goRouter(Ref ref) {

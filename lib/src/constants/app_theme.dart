@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -142,6 +145,51 @@ class AppTheme {
         indicatorColor: scheme.primary.withValues(alpha: 0.18),
       ),
       snackBarTheme: const SnackBarThemeData(behavior: SnackBarBehavior.floating),
+      // Transições e gesto de voltar como numa app de telemóvel: deslizar
+      // da esquerda para a direita volta à página anterior.
+      pageTransitionsTheme: PageTransitionsTheme(
+        builders: {
+          for (final p in TargetPlatform.values)
+            p: const SwipeBackPageTransitionsBuilder(),
+        },
+      ),
+    );
+  }
+}
+
+/// Transição do iOS (deslizar para voltar) em que o gesto funciona em todo
+/// o ecrã, e não só nos 20 px da margem esquerda (que no Safari do iPhone
+/// são do próprio browser). As abas das páginas não deslizam, para não
+/// competirem com este gesto.
+class SwipeBackPageTransitionsBuilder extends PageTransitionsBuilder {
+  const SwipeBackPageTransitionsBuilder();
+
+  static const _cupertino = CupertinoPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    final mq = MediaQuery.of(context);
+    // O detetor do gesto usa o padding esquerdo como largura da zona de
+    // arrasto; a página em si continua a ver o MediaQuery original.
+    return MediaQuery(
+      data: mq.copyWith(
+        padding: mq.padding.copyWith(
+          left: math.max(mq.padding.left, mq.size.width),
+        ),
+      ),
+      child: _cupertino.buildTransitions(
+        route,
+        context,
+        animation,
+        secondaryAnimation,
+        MediaQuery(data: mq, child: child),
+      ),
     );
   }
 }

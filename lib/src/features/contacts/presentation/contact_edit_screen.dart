@@ -240,6 +240,8 @@ class _ContactFormState extends ConsumerState<_ContactForm>
           key: _formKey,
           child: TabBarView(
             controller: _tabs,
+            // Deslizar na página é o gesto de voltar; as abas mudam com toque.
+            physics: const NeverScrollableScrollPhysics(),
             children: [
               _tab(_generalTab()),
               _tab(_preferencesTab()),
