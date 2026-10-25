@@ -1,5 +1,10 @@
 import 'package:equatable/equatable.dart';
+import 'package:imovio/src/features/contacts/domain/attachment.dart';
+import 'package:imovio/src/features/contacts/domain/property_preferences.dart';
 import 'package:imovio/src/utils/format.dart';
+
+export 'package:imovio/src/features/contacts/domain/attachment.dart';
+export 'package:imovio/src/features/contacts/domain/property_preferences.dart';
 
 typedef ContactID = String;
 
@@ -12,32 +17,6 @@ class ContactTypes {
 
 class IdDocumentTypes {
   static const all = ['Cartão de Cidadão', 'Passaporte', 'Título de Residência'];
-}
-
-/// O que o contacto procura. Usado para sugerir imóveis compatíveis.
-class PropertyPreferences extends Equatable {
-  const PropertyPreferences({
-    this.distrito,
-    this.concelho,
-    this.tipo,
-    this.tipologia,
-    this.maxPrice,
-  });
-  final String? distrito;
-  final String? concelho;
-  final String? tipo;
-  final String? tipologia;
-  final num? maxPrice;
-
-  bool get isEmpty =>
-      distrito == null &&
-      concelho == null &&
-      tipo == null &&
-      tipologia == null &&
-      maxPrice == null;
-
-  @override
-  List<Object?> get props => [distrito, concelho, tipo, tipologia, maxPrice];
 }
 
 /// Documento em `users/{uid}/contactos/{id}`. Os nomes dos campos são os da
@@ -60,6 +39,7 @@ class Contact extends Equatable {
     this.city,
     this.notes,
     this.preferences = const PropertyPreferences(),
+    this.attachments = const [],
     this.createdAt,
     this.updatedAt,
   });
@@ -82,6 +62,10 @@ class Contact extends Equatable {
   final String? city;
   final String? notes;
   final PropertyPreferences preferences;
+
+  /// Ficheiros anexados (no Firebase Storage). Geridos pelo repositório com
+  /// arrayUnion/arrayRemove, por isso não entram em [toMap].
+  final List<Attachment> attachments;
   final int? createdAt;
   final int? updatedAt;
 
@@ -106,13 +90,8 @@ class Contact extends Equatable {
       zip: s('zip'),
       city: s('city'),
       notes: s('notes'),
-      preferences: PropertyPreferences(
-        distrito: s('prefDistrito'),
-        concelho: s('prefConcelho'),
-        tipo: s('prefTipo'),
-        tipologia: s('prefTipologia'),
-        maxPrice: parseNum(data['prefMaxPrice']),
-      ),
+      preferences: PropertyPreferences.fromContactMap(data),
+      attachments: Attachment.listFrom(data['attachments']),
       createdAt: parseMillis(data['createdAt']),
       updatedAt: parseMillis(data['updatedAt']),
     );
@@ -133,11 +112,7 @@ class Contact extends Equatable {
         'zip': zip ?? '',
         'city': city ?? '',
         'notes': notes ?? '',
-        'prefDistrito': preferences.distrito ?? '',
-        'prefConcelho': preferences.concelho ?? '',
-        'prefTipo': preferences.tipo ?? '',
-        'prefTipologia': preferences.tipologia ?? '',
-        'prefMaxPrice': preferences.maxPrice,
+        'pref': preferences.toMap(),
         'createdAt': ?createdAt,
         'updatedAt': ?updatedAt,
       };
@@ -164,6 +139,7 @@ class Contact extends Equatable {
         city: city,
         notes: notes,
         preferences: preferences,
+        attachments: attachments,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
       );
@@ -194,6 +170,7 @@ class Contact extends Equatable {
         city,
         notes,
         preferences,
+        attachments,
         createdAt,
         updatedAt,
       ];

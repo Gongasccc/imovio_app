@@ -52,7 +52,7 @@ final _contacts = [
     type: ContactTypes.buyer,
     origin: 'idealista',
     preferences:
-        PropertyPreferences(concelho: 'Almada', tipologia: 'T2', maxPrice: 300000),
+        PropertyPreferences(concelhos: ['Almada'], tipologias: ['T2'], maxPrice: 300000),
   ),
   const Contact(id: 'c2', name: 'Ana Vendedora', type: ContactTypes.seller),
 ];

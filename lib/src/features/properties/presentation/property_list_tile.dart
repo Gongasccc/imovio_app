@@ -6,8 +6,13 @@ import 'package:imovio/src/utils/format.dart';
 
 /// Linha compacta de um imóvel, com miniatura, usada em sugestões e listas.
 class PropertyListTile extends StatelessWidget {
-  const PropertyListTile({super.key, required this.property});
+  const PropertyListTile({
+    super.key,
+    required this.property,
+    this.subtitleExtra,
+  });
   final Property property;
+  final String? subtitleExtra;
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +26,11 @@ class PropertyListTile extends StatelessWidget {
         child: PropertyImage(url: p.cover, width: 64, height: 48),
       ),
       title: Text(p.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: Text('${p.tags} · ${p.concelho ?? 'Local'}'),
+      subtitle: Text([
+        p.tags,
+        p.concelho ?? 'Local',
+        ?subtitleExtra,
+      ].join(' · ')),
       trailing: Text(
         Format.euros(p.price),
         style: TextStyle(
