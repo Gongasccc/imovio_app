@@ -1,9 +1,73 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
     // Cada utilizador só lê e escreve os seus próprios dados.
     match /users/{uid}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
+    // Código de convite → equipa. Lê-se um código de cada vez (sem listar).
+    match /teamCodes/{code} {
+      allow get: if signedIn();
+      allow create: if signedIn()
+        && getAfter(/databases/$(database)/documents/teams/$(request.resource.data.teamId)).data.ownerUid == request.auth.uid;
+    }
+
+    match /teams/{teamId} {
+      function isMember() {
+        return signedIn()
+          && exists(/databases/$(database)/documents/teams/$(teamId)/members/$(request.auth.uid));
+      }
+      function team() {
+        return get(/databases/$(database)/documents/teams/$(teamId)).data;
+      }
+      function mySponsor() {
+        return get(/databases/$(database)/documents/teams/$(teamId)/members/$(request.auth.uid)).data.get('sponsorUid', '');
+      }
+
+      allow read: if isMember();
+      allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid;
+      allow update: if signedIn() && resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.code == resource.data.code;
+
+      // Entra quem sabe o código (ou quem está a criar a equipa).
+      // O criador da equipa pode remover membros.
+      match /members/{uid} {
+        allow read: if isMember();
+        allow create: if signedIn() && request.auth.uid == uid
+          && request.resource.data.code == getAfter(/databases/$(database)/documents/teams/$(teamId)).data.code;
+        allow update: if signedIn() && request.auth.uid == uid
+          && request.resource.data.code == resource.data.code
+          && request.resource.data.get('sponsorUid', '') != uid;
+        allow delete: if signedIn()
+          && (request.auth.uid == uid || team().ownerUid == request.auth.uid);
+      }
+
+      // Cópia pública dos imóveis: todos os membros leem, cada um escreve os seus.
+      match /listings/{id} {
+        allow read: if isMember();
+        allow create, update: if isMember()
+          && request.resource.data.agentUid == request.auth.uid
+          && id.matches(request.auth.uid + '_.*');
+        allow delete: if isMember() && resource.data.agentUid == request.auth.uid;
+      }
+
+      // Números de venda: só o afilhado e o padrinho que ele indicou.
+      match /sales/{id} {
+        allow read: if signedIn()
+          && (resource.data.afilhadoUid == request.auth.uid
+              || resource.data.sponsorUid == request.auth.uid);
+        allow create, update: if isMember()
+          && request.resource.data.afilhadoUid == request.auth.uid
+          && request.resource.data.sponsorUid == mySponsor()
+          && id.matches(request.auth.uid + '_.*');
+        allow delete: if signedIn() && resource.data.afilhadoUid == request.auth.uid;
+      }
     }
   }
 }

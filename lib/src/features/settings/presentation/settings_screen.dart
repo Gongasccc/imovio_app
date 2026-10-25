@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:imovio/src/common_widgets/form_fields.dart';
 import 'package:imovio/src/common_widgets/responsive_center.dart';
 import 'package:imovio/src/common_widgets/section_card.dart';
@@ -7,6 +8,7 @@ import 'package:imovio/src/constants/app_sizes.dart';
 import 'package:imovio/src/features/authentication/data/firebase_auth_repository.dart';
 import 'package:imovio/src/features/settings/data/settings_repository.dart';
 import 'package:imovio/src/features/settings/domain/user_settings.dart';
+import 'package:imovio/src/routing/app_router.dart';
 import 'package:imovio/src/utils/dialogs.dart';
 import 'package:imovio/src/utils/format.dart';
 
@@ -49,6 +51,22 @@ class SettingsScreen extends ConsumerWidget {
                             ),
                           );
                     },
+                  ),
+                ),
+                gapH16,
+                SectionCard(
+                  title: 'Equipa',
+                  icon: Icons.groups_outlined,
+                  padding: const EdgeInsets.fromLTRB(20, 20, 8, 8),
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Equipa e afilhados'),
+                    subtitle: const Text(
+                      'Partilhar imóveis com colegas e ver os ganhos dos '
+                      'seus afilhados',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.pushNamed(AppRoute.team.name),
                   ),
                 ),
                 gapH16,

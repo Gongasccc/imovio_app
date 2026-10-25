@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:imovio/src/constants/app_theme.dart';
+import 'package:imovio/src/features/authentication/data/firebase_auth_repository.dart';
 import 'package:imovio/src/features/settings/data/settings_repository.dart';
+import 'package:imovio/src/features/team/application/team_sync.dart';
 import 'package:imovio/src/routing/app_router.dart';
 
 class MyApp extends ConsumerWidget {
@@ -12,6 +14,10 @@ class MyApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final goRouter = ref.watch(goRouterProvider);
     final themeMode = ref.watch(themeModeProvider);
+    // Com sessão iniciada, mantém os imóveis partilhados com a equipa.
+    if (ref.watch(authStateChangesProvider).value != null) {
+      ref.watch(teamSyncProvider);
+    }
     return MaterialApp.router(
       routerConfig: goRouter,
       debugShowCheckedModeBanner: false,
