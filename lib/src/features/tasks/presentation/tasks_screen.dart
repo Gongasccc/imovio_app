@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:imovio/src/features/tasks/presentation/calendar_export_button.dart';
 import 'package:imovio/src/common_widgets/async_value_widget.dart';
 import 'package:imovio/src/common_widgets/empty_placeholder.dart';
 import 'package:imovio/src/common_widgets/page_header.dart';
@@ -46,6 +47,15 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                   title: 'Tarefas',
                   subtitle: 'Follow-ups, visitas e tarefas com prazo.',
                   actions: [
+                    IconButton.outlined(
+                      tooltip: 'Pôr as tarefas no calendário do telemóvel',
+                      icon: const Icon(Icons.event_available_outlined),
+                      onPressed: () => exportTasksToCalendar(
+                        context,
+                        ref,
+                        ref.read(tasksStreamProvider).value ?? const [],
+                      ),
+                    ),
                     SegmentedButton<bool>(
                       segments: const [
                         ButtonSegment(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:imovio/src/features/tasks/presentation/calendar_export_button.dart';
 import 'package:imovio/src/common_widgets/async_value_widget.dart';
 import 'package:imovio/src/common_widgets/date_time_field.dart';
 import 'package:imovio/src/common_widgets/empty_placeholder.dart';
@@ -131,6 +132,13 @@ class _TaskFormState extends ConsumerState<_TaskForm> {
       appBar: AppBar(
         title: Text(_isNew ? 'Nova Tarefa' : 'Editar Tarefa'),
         actions: [
+          if (!_isNew && widget.task!.date != null)
+            IconButton(
+              tooltip: 'Adicionar ao calendário do telemóvel',
+              icon: const Icon(Icons.event_available_outlined),
+              onPressed: () =>
+                  exportTasksToCalendar(context, ref, [widget.task!]),
+            ),
           if (!_isNew)
             IconButton(
               tooltip: 'Eliminar',

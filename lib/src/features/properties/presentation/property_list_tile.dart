@@ -60,10 +60,10 @@ class PropertyImage extends StatelessWidget {
   final double? width;
   final double? height;
 
-  static String webUrl(String url, int width) {
+  static String webUrl(String url, int width, {String format = 'webp'}) {
     if (!url.startsWith('http')) return url;
     final encoded = Uri.encodeComponent(url);
-    return 'https://images.weserv.nl/?url=$encoded&w=$width&output=webp&q=80';
+    return 'https://images.weserv.nl/?url=$encoded&w=$width&output=$format&q=80';
   }
 
   @override

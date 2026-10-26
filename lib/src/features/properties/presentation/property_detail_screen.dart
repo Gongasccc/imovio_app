@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
+import 'package:imovio/src/features/brochure/presentation/pdf_preview_screen.dart';
+import 'package:imovio/src/features/brochure/application/property_brochure_pdf.dart';
+import 'package:imovio/src/features/brochure/application/pdf_common.dart';
+import 'package:imovio/src/features/authentication/data/firebase_auth_repository.dart';
 import 'package:imovio/src/features/templates/presentation/send_message_sheet.dart';
 import 'package:imovio/src/features/interactions/presentation/interaction_tile.dart';
 import 'package:imovio/src/features/interactions/domain/interaction.dart';
@@ -128,6 +133,30 @@ class _PropertyDetailState extends ConsumerState<_PropertyDetail>
     }
   }
 
+  void _openBrochure(BuildContext context) {
+    final user = ref.read(authRepositoryProvider).currentUser;
+    final property = _data.toProperty();
+    PdfPreviewScreen.open(
+      context,
+      title: 'Ficha do imóvel',
+      fileName: 'imovel-${pdfSlug(property.title)}.pdf',
+      build: (format) async {
+        final client = http.Client();
+        try {
+          return await PropertyBrochurePdf.build(
+            property,
+            client: client,
+            consultant: consultantName(ref),
+            consultantEmail: user?.email,
+            format: format,
+          );
+        } finally {
+          client.close();
+        }
+      },
+    );
+  }
+
   Future<void> _delete() async {
     if (!await showConfirmDialog(
           context,
@@ -167,6 +196,11 @@ class _PropertyDetailState extends ConsumerState<_PropertyDetail>
                 overflow: TextOverflow.ellipsis,
               ),
               actions: [
+                IconButton(
+                  tooltip: 'Ficha do imóvel (PDF)',
+                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  onPressed: () => _openBrochure(context),
+                ),
                 IconButton(
                   tooltip: 'Estudo de mercado',
                   icon: const Icon(Icons.query_stats),

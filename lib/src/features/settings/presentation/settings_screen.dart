@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:imovio/src/utils/file_saver.dart';
+import 'package:imovio/src/features/tasks/data/tasks_repository.dart';
+import 'package:imovio/src/features/properties/data/properties_repository.dart';
+import 'package:imovio/src/features/pipeline/data/deals_repository.dart';
+import 'package:imovio/src/features/interactions/data/interactions_repository.dart';
+import 'package:imovio/src/features/export/application/export_service.dart';
+import 'package:imovio/src/features/expenses/data/expenses_repository.dart';
+import 'package:imovio/src/features/contacts/data/contacts_repository.dart';
 import 'package:imovio/src/common_widgets/responsive_center.dart';
 import 'package:imovio/src/features/ai/data/gemini_repository.dart';
 import 'package:imovio/src/features/ai/presentation/gemini_key_dialog.dart';
@@ -69,6 +77,8 @@ class SettingsScreen extends ConsumerWidget {
                     onTap: () => context.pushNamed(AppRoute.team.name),
                   ),
                 ),
+                gapH16,
+                const _BackupCard(),
                 gapH16,
                 SectionCard(
                   title: 'Comunicação',
@@ -198,6 +208,49 @@ class _AiSettingsCard extends ConsumerWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Exportar tudo para Excel (cópia de segurança).
+class _BackupCard extends ConsumerWidget {
+  const _BackupCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SectionCard(
+      title: 'Cópia de segurança',
+      icon: Icons.backup_outlined,
+      padding: const EdgeInsets.fromLTRB(20, 20, 8, 8),
+      child: ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: const Icon(Icons.grid_on_outlined),
+        title: const Text('Exportar tudo para Excel'),
+        subtitle: const Text(
+            'Contactos, imóveis, negócios, tarefas, despesas e interações'),
+        trailing: const Icon(Icons.download_outlined),
+        onTap: () {
+          final bytes = exportAllToXlsx(
+            contacts: ref.read(contactsStreamProvider).value ?? const [],
+            properties: ref.read(propertiesStreamProvider).value ?? const [],
+            deals: ref.read(dealsStreamProvider).value ?? const [],
+            tasks: ref.read(tasksStreamProvider).value ?? const [],
+            expenses: ref.read(expensesStreamProvider).value ?? const [],
+            interactions: ref.read(interactionsStreamProvider).value ?? const [],
+          );
+          final d = DateTime.now();
+          final name = 'imovio-${d.year}-${d.month.toString().padLeft(2, '0')}'
+              '-${d.day.toString().padLeft(2, '0')}.xlsx';
+          final ok = saveBytesFile(
+            fileName: name,
+            bytes: bytes,
+            mimeType:
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          );
+          showSnack(context,
+              ok ? 'Excel descarregado: $name' : 'Exportação só disponível na versão web.');
+        },
       ),
     );
   }
