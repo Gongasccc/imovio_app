@@ -40,6 +40,7 @@ void main() {
     late http.Request sent;
     final client = GeminiClient(
       MockClient((req) async {
+        if (req.method == 'GET') return http.Response('{"models": []}', 200);
         sent = req;
         return _reply('Aqui está:\n```json\n[{"a": 1}]\n```');
       }),
@@ -47,7 +48,7 @@ void main() {
     );
     final res = await client.generate('olá', googleSearch: true);
     expect(sent.headers['x-goog-api-key'], 'chave');
-    expect(sent.url.path, contains('gemini-2.5-flash:generateContent'));
+    expect(sent.url.path, contains('gemini-flash-latest:generateContent'));
     expect((jsonDecode(sent.body) as Map)['tools'], [
       {'google_search': {}},
     ]);
@@ -62,6 +63,7 @@ void main() {
     final models = <String>[];
     final client = GeminiClient(
       MockClient((req) async {
+        if (req.method == 'GET') return http.Response('{"models": []}', 200);
         models.add(req.url.path);
         return models.length == 1
             ? http.Response('{"error": {"message": "not found"}}', 404)
@@ -70,7 +72,7 @@ void main() {
       'chave',
     );
     expect((await client.generate('x')).text, 'ok');
-    expect(models.last, contains('gemini-2.5-flash-lite'));
+    expect(models.last, contains('gemini-flash-lite-latest'));
   });
 
   test('chave inválida dá mensagem em português', () async {
@@ -149,6 +151,7 @@ void main() {
     late String prompt;
     final gemini = GeminiClient(
       MockClient((req) async {
+        if (req.method == 'GET') return http.Response('{"models": []}', 200);
         prompt =
             ((((jsonDecode(req.body) as Map)['contents'] as List).first
                             as Map)['parts']

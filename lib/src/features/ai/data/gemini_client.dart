@@ -43,7 +43,6 @@ class GeminiResponse {
     }
     return null;
   }
-
 }
 
 class GeminiException implements Exception {
@@ -62,8 +61,86 @@ class GeminiClient {
   final http.Client _client;
   final String _apiKey;
 
-  /// Por ordem de preferência; se um deixar de existir, usa o seguinte.
-  static const models = ['gemini-2.5-flash', 'gemini-2.5-flash-lite'];
+  /// Preferidos quando existem. Os "-latest" apontam sempre para o modelo
+  /// Flash atual, por isso não deixam de funcionar quando a Google retira
+  /// uma versão (foi o que aconteceu ao gemini-2.5-flash-lite).
+  static const preferredModels = [
+    'gemini-flash-latest',
+    'gemini-flash-lite-latest',
+    'gemini-2.5-flash',
+    'gemini-2.5-flash-lite',
+  ];
+
+  /// Modelos disponíveis para cada chave, descobertos uma vez por sessão.
+  static final _modelsByKey = <String, Future<List<String>>>{};
+
+  /// Os modelos Flash que esta chave pode usar, pela ordem a tentar.
+  Future<List<String>> models() =>
+      _modelsByKey[_apiKey] ??= _discoverModels().catchError((Object _) {
+        _modelsByKey.remove(_apiKey);
+        return preferredModels;
+      });
+
+  Future<List<String>> _discoverModels() async {
+    final res = await _client
+        .get(
+          Uri.https('generativelanguage.googleapis.com', '/v1beta/models', {
+            'pageSize': '1000',
+          }),
+          headers: {'x-goog-api-key': _apiKey},
+        )
+        .timeout(const Duration(seconds: 20));
+    if (res.statusCode != 200) {
+      _modelsByKey.remove(_apiKey);
+      final data = res.body.isEmpty
+          ? const <String, dynamic>{}
+          : jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+      throw _error(res.statusCode, data);
+    }
+    final data = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    final ranked = rankModels([
+      for (final m in data['models'] as List? ?? const [])
+        if ((m['supportedGenerationMethods'] as List? ?? const []).contains(
+          'generateContent',
+        ))
+          (m['name'] as String).replaceFirst('models/', ''),
+    ]);
+    // Lista vazia ou estranha: tenta os nomes conhecidos.
+    return ranked.isEmpty ? preferredModels : ranked;
+  }
+
+  /// Fica só com modelos Flash de texto: primeiro os preferidos, depois os
+  /// outros do mais recente para o mais antigo.
+  static List<String> rankModels(List<String> available) {
+    const skip = [
+      'image',
+      'tts',
+      'audio',
+      'live',
+      'embedding',
+      'vision',
+      'thinking',
+    ];
+    final flash = available
+        .where((m) => m.contains('flash') && !skip.any(m.contains))
+        .toList();
+    double version(String m) =>
+        double.tryParse(
+          RegExp(r'gemini-(\d+(?:\.\d+)?)').firstMatch(m)?.group(1) ?? '',
+        ) ??
+        0;
+    final rest = flash.where((m) => !preferredModels.contains(m)).toList()
+      ..sort((a, b) {
+        final v = version(b).compareTo(version(a));
+        if (v != 0) return v;
+        // Estáveis antes de "preview"/"exp", e Flash antes de Flash-Lite.
+        int rank(String m) =>
+            (m.contains('preview') || m.contains('exp') ? 2 : 0) +
+            (m.contains('lite') ? 1 : 0);
+        return rank(a).compareTo(rank(b));
+      });
+    return [...preferredModels.where(flash.contains), ...rest];
+  }
 
   static const keyUrl = 'https://aistudio.google.com/apikey';
 
@@ -89,7 +166,8 @@ class GeminiClient {
       'generationConfig': {'temperature': temperature},
     });
     GeminiException? last;
-    for (final model in models) {
+    final candidates = await models();
+    for (final model in candidates) {
       final res = await _client
           .post(
             Uri.https(
@@ -111,6 +189,8 @@ class GeminiClient {
       // Modelo descontinuado ou sem quota: tenta o seguinte.
       if (res.statusCode != 404 && res.statusCode != 429) throw last;
     }
+    // Todos falharam: na próxima vez volta a perguntar à Google a lista.
+    _modelsByKey.remove(_apiKey);
     throw last!;
   }
 
