@@ -158,6 +158,24 @@ void main() {
     expect(c.sourceUrl, 'https://www.idealista.pt/imovel/12345678/');
   });
 
+  test('Gemini lento: a app lê os anúncios sozinha', () async {
+    MarketAiService.geminiTimeout = const Duration(milliseconds: 200);
+    addTearDown(
+      () => MarketAiService.geminiTimeout = const Duration(seconds: 40),
+    );
+    final client = MockClient((req) async {
+      if (req.url.host == 'api.tavily.com') return _tavily();
+      await Future<void>.delayed(const Duration(seconds: 2));
+      return _gemini('[]');
+    });
+    final res = await MarketAiService(
+      gemini: GeminiClient(client, 'g'),
+      tavily: TavilyClient(client, 'tvly-teste'),
+    ).searchArea(_study(), newId: newId);
+    expect(res.readByAi, isFalse);
+    expect(res.listings.single.price, 235000);
+  });
+
   test('sem chave do Tavily dá mensagem clara', () {
     expect(
       () => const MarketAiService().searchArea(_study(), newId: newId),

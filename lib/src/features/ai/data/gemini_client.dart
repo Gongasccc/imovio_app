@@ -234,19 +234,29 @@ class GeminiClient {
       // antes de passar ao modelo seguinte.
       for (var attempt = 0; attempt < 2; attempt++) {
         if (attempt > 0) await Future<void>.delayed(retryDelay);
-        final res = await _client
-            .post(
-              Uri.https(
-                'generativelanguage.googleapis.com',
-                '/v1beta/models/$model:generateContent',
-              ),
-              headers: {
-                'Content-Type': 'application/json',
-                'x-goog-api-key': _apiKey,
-              },
-              body: body,
-            )
-            .timeout(const Duration(seconds: 90));
+        final http.Response res;
+        try {
+          res = await _client
+              .post(
+                Uri.https(
+                  'generativelanguage.googleapis.com',
+                  '/v1beta/models/$model:generateContent',
+                ),
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-goog-api-key': _apiKey,
+                },
+                body: body,
+              )
+              .timeout(requestTimeout);
+        } on TimeoutException {
+          // Modelo lento demais: passa ao seguinte.
+          last = const GeminiException(
+            'O Gemini demorou demasiado a responder. Tente outra vez.',
+            status: 504,
+          );
+          break;
+        }
         final data = res.body.isEmpty
             ? const <String, dynamic>{}
             : jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
@@ -262,6 +272,9 @@ class GeminiClient {
     _modelsByKey.remove(_apiKey);
     throw last!;
   }
+
+  /// Tempo máximo de cada pedido a um modelo.
+  static Duration requestTimeout = const Duration(seconds: 60);
 
   /// Espera entre tentativas quando o modelo está sobrecarregado.
   static Duration retryDelay = const Duration(seconds: 2);

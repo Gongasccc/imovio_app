@@ -53,6 +53,10 @@ typedef ListingMaker = ComparableListing Function({
 /// pelo Tavily (grátis); o Gemini, se houver chave, lê os resultados. Sem
 /// Gemini, ou se ele falhar, a app tira o preço e a área do texto.
 class MarketAiService {
+  /// Tempo máximo para o Gemini ler os resultados; depois disso a app lê-os
+  /// sozinha.
+  static Duration geminiTimeout = const Duration(seconds: 40);
+
   const MarketAiService({this.gemini, this.tavily});
   final GeminiClient? gemini;
   final TavilyClient? tavily;
@@ -78,6 +82,7 @@ class MarketAiService {
       query,
       domains: _portals,
       rawContent: gemini != null,
+      maxResults: 15,
     );
     final sources = [
       for (final r in results) GeminiSource(title: r.title, uri: r.url),
@@ -116,15 +121,20 @@ class MarketAiService {
 
     if (gemini != null && results.isNotEmpty) {
       try {
-        final listings = await _readWithGemini(results, study, make);
-        return AreaSearchResult(
-          listings: _sane(listings, rental),
-          sources: sources,
-          queries: [query],
-          readByAi: true,
+        final listings = _sane(
+          await _readWithGemini(results, study, make).timeout(geminiTimeout),
+          rental,
         );
-      } on GeminiException {
-        // Sem quota ou indisponível: lê os resultados sem IA.
+        if (listings.isNotEmpty) {
+          return AreaSearchResult(
+            listings: listings,
+            sources: sources,
+            queries: [query],
+            readByAi: true,
+          );
+        }
+      } catch (_) {
+        // Sem quota, lento demais ou indisponível: lê os resultados sem IA.
       }
     }
     final fromText = <ComparableListing>[];
@@ -145,14 +155,16 @@ class MarketAiService {
     ListingMaker make,
   ) async {
     final p = study.subject.property;
+    // Texto curto: um pedido grande demora minutos no plano grátis.
     final pages = StringBuffer();
     for (final r in results) {
+      if (pages.length > 24000) break;
       final raw = r.rawContent ?? '';
       pages
         ..writeln('### ${r.title}')
         ..writeln('URL: ${r.url}')
         ..writeln(r.content)
-        ..writeln(raw.length > 4000 ? raw.substring(0, 4000) : raw)
+        ..writeln(raw.length > 1500 ? raw.substring(0, 1500) : raw)
         ..writeln();
     }
     final what = [p.tipo, p.tipologia].nonNulls.join(' ');
