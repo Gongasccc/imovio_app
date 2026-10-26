@@ -16,9 +16,9 @@ import 'package:imovio/src/utils/launcher.dart';
 /// É uma página inteira (e não um diálogo) para o teclado do telemóvel, o
 /// colar e o voltar atrás com o gesto funcionarem como numa app normal.
 Future<bool> showGeminiKeyDialog(BuildContext context) async =>
-    await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => const GeminiKeyScreen()),
-    ) ??
+    await Navigator.of(
+      context,
+    ).push<bool>(MaterialPageRoute(builder: (_) => const GeminiKeyScreen())) ??
     false;
 
 class GeminiKeyScreen extends ConsumerStatefulWidget {
@@ -52,8 +52,10 @@ class _GeminiKeyScreenState extends ConsumerState<GeminiKeyScreen> {
       final text = data?.text?.trim() ?? '';
       if (text.isEmpty) {
         if (mounted) {
-          showSnack(context,
-              'A área de transferência está vazia. Copie a chave no AI Studio.');
+          showSnack(
+            context,
+            'A área de transferência está vazia. Copie a chave no AI Studio.',
+          );
         }
         return;
       }
@@ -65,8 +67,10 @@ class _GeminiKeyScreenState extends ConsumerState<GeminiKeyScreen> {
       // Alguns browsers não deixam ler a área de transferência: resta o
       // "colar" do próprio campo (toque longo).
       if (mounted) {
-        showSnack(context,
-            'Não foi possível colar automaticamente. Toque e mantenha no campo e escolha "Colar".');
+        showSnack(
+          context,
+          'Não foi possível colar automaticamente. Toque e mantenha no campo e escolha "Colar".',
+        );
       }
     }
   }
@@ -84,8 +88,10 @@ class _GeminiKeyScreenState extends ConsumerState<GeminiKeyScreen> {
     });
     try {
       // Pedido mínimo para confirmar que a chave funciona.
-      await GeminiClient(ref.read(geminiHttpClientProvider), key)
-          .generate('Responde só: ok');
+      await GeminiClient(
+        ref.read(geminiHttpClientProvider),
+        key,
+      ).generate('Responde só: ok');
       await ref
           .read(geminiKeyRepositoryProvider)
           .setKey(uid: ref.read(currentUidProvider), key: key);
@@ -95,8 +101,10 @@ class _GeminiKeyScreenState extends ConsumerState<GeminiKeyScreen> {
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _error =
-            'A chave não funcionou. Confirme que a copiou inteira.\n($e)');
+        setState(
+          () => _error =
+              'A chave não funcionou. Confirme que a copiou inteira.\n($e)',
+        );
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -125,35 +133,38 @@ class _GeminiKeyScreenState extends ConsumerState<GeminiKeyScreen> {
     final hasKey = (ref.watch(geminiKeyProvider).value ?? '').isNotEmpty;
     final scheme = Theme.of(context).colorScheme;
     Widget step(int n, String text, {Widget? action}) => Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CircleAvatar(
-                radius: 12,
-                backgroundColor: scheme.primary,
-                child: Text('$n',
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: scheme.onPrimary)),
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 12,
+            backgroundColor: scheme.primary,
+            child: Text(
+              '$n',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: scheme.onPrimary,
               ),
-              gapW12,
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(text),
-                    ),
-                    ?action,
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
-        );
+          gapW12,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(text),
+                ),
+                ?action,
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -202,7 +213,10 @@ class _GeminiKeyScreenState extends ConsumerState<GeminiKeyScreen> {
                         ),
                       ),
                       step(2, 'Carregue em "Create API key" (Criar chave).'),
-                      step(3, 'Copie a chave (começa por "AIza").'),
+                      step(
+                        3,
+                        'Copie a chave (pode começar por "AQ." ou por "AIza").',
+                      ),
                       step(4, 'Volte aqui e carregue em "Colar".'),
                     ],
                   ),
@@ -224,14 +238,16 @@ class _GeminiKeyScreenState extends ConsumerState<GeminiKeyScreen> {
                         maxLines: 1,
                         style: const TextStyle(fontFamily: 'monospace'),
                         decoration: InputDecoration(
-                          hintText: 'AIza...',
+                          hintText: 'Cole aqui a chave',
                           errorText: _error,
                           errorMaxLines: 4,
                           suffixIcon: IconButton(
                             tooltip: _obscure ? 'Mostrar' : 'Esconder',
-                            icon: Icon(_obscure
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined),
+                            icon: Icon(
+                              _obscure
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                            ),
                             onPressed: () =>
                                 setState(() => _obscure = !_obscure),
                           ),
@@ -257,9 +273,9 @@ class _GeminiKeyScreenState extends ConsumerState<GeminiKeyScreen> {
                               onPressed: _busy
                                   ? null
                                   : () => setState(() {
-                                        _key.clear();
-                                        _error = null;
-                                      }),
+                                      _key.clear();
+                                      _error = null;
+                                    }),
                             ),
                           ),
                         ],
