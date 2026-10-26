@@ -46,8 +46,17 @@ class GeminiResponse {
 }
 
 class GeminiException implements Exception {
-  const GeminiException(this.message);
+  const GeminiException(this.message, {this.status});
   final String message;
+  final int? status;
+
+  /// A chave foi recusada (inválida ou sem acesso).
+  bool get isKeyProblem => status == 400 || status == 401 || status == 403;
+
+  /// Problema passageiro do lado da Google (sobrecarga ou limite): a chave
+  /// em si está boa.
+  bool get isTemporary =>
+      status == 429 || status == 500 || status == 503 || status == 504;
 
   @override
   String toString() => message;
@@ -168,50 +177,74 @@ class GeminiClient {
     GeminiException? last;
     final candidates = await models();
     for (final model in candidates) {
-      final res = await _client
-          .post(
-            Uri.https(
-              'generativelanguage.googleapis.com',
-              '/v1beta/models/$model:generateContent',
-            ),
-            headers: {
-              'Content-Type': 'application/json',
-              'x-goog-api-key': _apiKey,
-            },
-            body: body,
-          )
-          .timeout(const Duration(seconds: 90));
-      final data = res.body.isEmpty
-          ? const <String, dynamic>{}
-          : jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
-      if (res.statusCode == 200) return _parse(data);
-      last = _error(res.statusCode, data);
-      // Modelo descontinuado ou sem quota: tenta o seguinte.
-      if (res.statusCode != 404 && res.statusCode != 429) throw last;
+      // Com o modelo sobrecarregado (503), espera um pouco e tenta outra vez
+      // antes de passar ao modelo seguinte.
+      for (var attempt = 0; attempt < 2; attempt++) {
+        if (attempt > 0) await Future<void>.delayed(retryDelay);
+        final res = await _client
+            .post(
+              Uri.https(
+                'generativelanguage.googleapis.com',
+                '/v1beta/models/$model:generateContent',
+              ),
+              headers: {
+                'Content-Type': 'application/json',
+                'x-goog-api-key': _apiKey,
+              },
+              body: body,
+            )
+            .timeout(const Duration(seconds: 90));
+        final data = res.body.isEmpty
+            ? const <String, dynamic>{}
+            : jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+        if (res.statusCode == 200) return _parse(data);
+        last = _error(res.statusCode, data);
+        if (res.statusCode == 503 || res.statusCode == 500) continue;
+        break;
+      }
+      // Modelo descontinuado, sem quota ou sobrecarregado: tenta o seguinte.
+      if (!(last!.isTemporary || last.status == 404)) throw last;
     }
     // Todos falharam: na próxima vez volta a perguntar à Google a lista.
     _modelsByKey.remove(_apiKey);
     throw last!;
   }
 
+  /// Espera entre tentativas quando o modelo está sobrecarregado.
+  static Duration retryDelay = const Duration(seconds: 2);
+
   static GeminiException _error(int status, Map<String, dynamic> data) {
     final message = (data['error'] as Map?)?['message']?.toString() ?? '';
-    if (status == 400 && message.contains('API key')) {
-      return const GeminiException(
-        'A chave do Gemini não é válida. Crie uma nova no Google AI Studio.',
+    if ((status == 400 && message.contains('API key')) || status == 401) {
+      return GeminiException(
+        'A chave do Gemini não é válida. Confirme que a copiou inteira, '
+        'ou crie uma nova no Google AI Studio.',
+        status: status,
       );
     }
     if (status == 403) {
-      return const GeminiException(
+      return GeminiException(
         'A chave do Gemini não tem acesso. Confirme-a no Google AI Studio.',
+        status: status,
       );
     }
     if (status == 429) {
-      return const GeminiException(
-        'Atingiu o limite gratuito diário do Gemini. Tente amanhã.',
+      return GeminiException(
+        'Atingiu o limite gratuito do Gemini por agora. Tente mais tarde.',
+        status: status,
       );
     }
-    return GeminiException('Erro do Gemini ($status): $message');
+    if (status == 503 || status == 500 || status == 504) {
+      return GeminiException(
+        'O Gemini da Google está com muitos pedidos neste momento (não é '
+        'problema da sua chave). Tente daqui a um ou dois minutos.',
+        status: status,
+      );
+    }
+    return GeminiException(
+      'Erro do Gemini ($status): $message',
+      status: status,
+    );
   }
 
   static GeminiResponse _parse(Map<String, dynamic> data) {

@@ -86,25 +86,37 @@ class _GeminiKeyScreenState extends ConsumerState<GeminiKeyScreen> {
       _busy = true;
       _error = null;
     });
+    final uid = ref.read(currentUidProvider);
+    final repo = ref.read(geminiKeyRepositoryProvider);
     try {
       // Pedido mínimo para confirmar que a chave funciona.
       await GeminiClient(
         ref.read(geminiHttpClientProvider),
         key,
       ).generate('Responde só: ok');
-      await ref
-          .read(geminiKeyRepositoryProvider)
-          .setKey(uid: ref.read(currentUidProvider), key: key);
+      await repo.setKey(uid: uid, key: key);
       if (mounted) {
         showSnack(context, 'Chave do Gemini guardada');
         Navigator.of(context).pop(true);
       }
+    } on GeminiException catch (e) {
+      if (e.isTemporary) {
+        // A Google aceitou a chave mas está ocupada: guarda na mesma.
+        await repo.setKey(uid: uid, key: key);
+        if (mounted) {
+          showSnack(
+            context,
+            'Chave guardada. O Gemini está muito ocupado agora; as funções '
+            'com IA voltam a funcionar daqui a pouco.',
+          );
+          Navigator.of(context).pop(true);
+        }
+      } else if (mounted) {
+        setState(() => _error = e.message);
+      }
     } catch (e) {
       if (mounted) {
-        setState(
-          () => _error =
-              'A chave não funcionou. Confirme que a copiou inteira.\n($e)',
-        );
+        setState(() => _error = 'Não foi possível contactar o Gemini: $e');
       }
     } finally {
       if (mounted) setState(() => _busy = false);

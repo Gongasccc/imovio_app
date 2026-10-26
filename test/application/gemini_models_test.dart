@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:imovio/src/features/ai/data/gemini_client.dart';
 
 void main() {
@@ -32,5 +34,50 @@ void main() {
       'gemini-3-flash',
     ]);
     expect(ranked, ['gemini-3-flash', 'gemini-2.0-flash']);
+  });
+
+  group('sobrecarga (503)', () {
+    setUp(() => GeminiClient.retryDelay = Duration.zero);
+
+    http.Response ok() => http.Response(
+          '{"candidates":[{"content":{"parts":[{"text":"ok"}]}}]}',
+          200,
+        );
+    http.Response busy() => http.Response(
+          '{"error":{"message":"This model is currently experiencing high demand."}}',
+          503,
+        );
+
+    test('tenta outra vez e passa ao modelo seguinte', () async {
+      final calls = <String>[];
+      final client = GeminiClient(
+        MockClient((req) async {
+          if (req.method == 'GET') return http.Response('{"models": []}', 200);
+          calls.add(req.url.path);
+          return calls.length < 3 ? busy() : ok();
+        }),
+        'chave-503-a',
+      );
+      expect((await client.generate('x')).text, 'ok');
+      expect(calls.first, contains('gemini-flash-latest'));
+      expect(calls.last, contains('gemini-flash-lite-latest'));
+    });
+
+    test('se todos estiverem ocupados, o erro é temporário e não da chave',
+        () async {
+      final client = GeminiClient(
+        MockClient((req) async => req.method == 'GET'
+            ? http.Response('{"models": []}', 200)
+            : busy()),
+        'chave-503-b',
+      );
+      await expectLater(
+        client.generate('x'),
+        throwsA(isA<GeminiException>()
+            .having((e) => e.isTemporary, 'isTemporary', isTrue)
+            .having((e) => e.isKeyProblem, 'isKeyProblem', isFalse)
+            .having((e) => e.message, 'message', contains('não é problema'))),
+      );
+    });
   });
 }
