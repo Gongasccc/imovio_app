@@ -1,90 +1,281 @@
 import 'package:imovio/src/features/ai/data/gemini_client.dart';
+import 'package:imovio/src/features/ai/data/tavily_client.dart';
 import 'package:imovio/src/features/market_study/domain/comparable_listing.dart';
 import 'package:imovio/src/features/market_study/domain/market_study.dart';
 import 'package:imovio/src/utils/format.dart';
 
-/// Anúncios encontrados pelo Gemini numa pesquisa Google, por confirmar.
+/// Anúncios encontrados numa pesquisa na web, por confirmar.
 class AreaSearchResult {
   const AreaSearchResult({
     required this.listings,
     required this.sources,
     required this.queries,
+    this.readByAi = false,
   });
 
   final List<ComparableListing> listings;
   final List<GeminiSource> sources;
   final List<String> queries;
+
+  /// true se o Gemini leu os resultados; false se foram lidos pela app.
+  final bool readByAi;
 }
 
-/// Usos do Gemini no estudo de mercado: procurar anúncios semelhantes na zona
-/// e escrever o comentário de mercado a partir dos números do estudo.
+/// Portais imobiliários onde procurar.
+const _portals = [
+  'idealista.pt',
+  'imovirtual.com',
+  'casa.sapo.pt',
+  'supercasa.pt',
+  'remax.pt',
+  'era.pt',
+  'century21.pt',
+  'kwportugal.pt',
+  'iadportugal.pt',
+  'casayes.pt',
+];
+
+typedef ListingMaker = ComparableListing Function({
+  required String? title,
+  required num price,
+  required num area,
+  String? tipologia,
+  String? freguesia,
+  String? concelho,
+  Conservation? conservation,
+  bool garage,
+  bool outdoor,
+  bool elevator,
+  String? url,
+});
+
+/// Procura de anúncios na zona e comentário de mercado. A pesquisa é feita
+/// pelo Tavily (grátis); o Gemini, se houver chave, lê os resultados. Sem
+/// Gemini, ou se ele falhar, a app tira o preço e a área do texto.
 class MarketAiService {
-  const MarketAiService(this._gemini);
-  final GeminiClient _gemini;
+  const MarketAiService({this.gemini, this.tavily});
+  final GeminiClient? gemini;
+  final TavilyClient? tavily;
 
   Future<AreaSearchResult> searchArea(
     MarketStudy study, {
     required ComparableID Function() newId,
   }) async {
-    final s = study.subject;
-    final p = s.property;
-    final zone = [p.freguesia, p.concelho, p.distrito].nonNulls.join(', ');
+    final tavily = this.tavily;
+    if (tavily == null) {
+      throw const TavilyException('Falta a chave do Tavily para pesquisar.');
+    }
+    final p = study.subject.property;
     final rental = study.isRental;
-    final what = [
-      p.tipo ?? 'casa',
-      p.tipologia,
-    ].nonNulls.join(' ').toLowerCase();
+    final what = [p.tipo ?? 'casa', p.tipologia].nonNulls.join(' ');
+    final zone = [p.freguesia, p.concelho].nonNulls.join(' ');
+    final query =
+        '$what ${rental ? 'para arrendar' : 'à venda'} $zone '
+                '${p.distrito ?? ''} preço m²'
+            .replaceAll(RegExp(r'\s+'), ' ')
+            .trim();
+    final results = await tavily.search(
+      query,
+      domains: _portals,
+      rawContent: gemini != null,
+    );
+    final sources = [
+      for (final r in results) GeminiSource(title: r.title, uri: r.url),
+    ];
+    final today = formatIsoDate(DateTime.now());
+    ComparableListing make({
+      required String? title,
+      required num price,
+      required num area,
+      String? tipologia,
+      String? freguesia,
+      String? concelho,
+      Conservation? conservation,
+      bool garage = false,
+      bool outdoor = false,
+      bool elevator = false,
+      String? url,
+    }) => ComparableListing(
+      id: newId(),
+      title: title ?? '$what em ${p.concelho ?? zone}',
+      price: price,
+      area: area,
+      negocio: p.negocio,
+      tipo: p.tipo,
+      tipologia: tipologia ?? p.tipologia,
+      concelho: concelho ?? p.concelho,
+      freguesia: freguesia,
+      conservation: conservation,
+      garage: garage,
+      outdoor: outdoor,
+      elevator: elevator,
+      sourceUrl: url != null && url.startsWith('http') ? url : null,
+      notes: 'Encontrado numa pesquisa na web em $today.',
+      date: today,
+    );
+
+    if (gemini != null && results.isNotEmpty) {
+      try {
+        final listings = await _readWithGemini(results, study, make);
+        return AreaSearchResult(
+          listings: _sane(listings, rental),
+          sources: sources,
+          queries: [query],
+          readByAi: true,
+        );
+      } on GeminiException {
+        // Sem quota ou indisponível: lê os resultados sem IA.
+      }
+    }
+    final fromText = <ComparableListing>[];
+    for (final r in results) {
+      final c = fromSnippet(r, rental, make);
+      if (c != null) fromText.add(c);
+    }
+    return AreaSearchResult(
+      listings: _sane(fromText, rental),
+      sources: sources,
+      queries: [query],
+    );
+  }
+
+  Future<List<ComparableListing>> _readWithGemini(
+    List<WebResult> results,
+    MarketStudy study,
+    ListingMaker make,
+  ) async {
+    final p = study.subject.property;
+    final pages = StringBuffer();
+    for (final r in results) {
+      final raw = r.rawContent ?? '';
+      pages
+        ..writeln('### ${r.title}')
+        ..writeln('URL: ${r.url}')
+        ..writeln(r.content)
+        ..writeln(raw.length > 4000 ? raw.substring(0, 4000) : raw)
+        ..writeln();
+    }
+    final what = [p.tipo, p.tipologia].nonNulls.join(' ');
+    final where = [p.freguesia, p.concelho].nonNulls.join(', ');
+    final size = study.subject.area == null
+        ? ''
+        : ', idealmente com área perto de ${Format.number(study.subject.area)} m²';
     final prompt =
         '''
-Pesquisa no Google anúncios ATUAIS de $what ${rental ? 'para arrendar' : 'à venda'} em $zone, Portugal${s.area == null ? '' : ', com área parecida a ${Format.number(s.area)} m²'}.
-Procura em portais imobiliários (Idealista, Imovirtual, Casa Sapo, Supercasa, RE/MAX, ERA, Century 21, KW, iad).
-Responde APENAS com um array JSON de até 10 anúncios distintos que encontraste nos resultados, cada um assim:
-{"titulo": string, "preco": número em euros${rental ? ' por mês' : ''}, "area": número m² (área útil, ou bruta se for a única), "tipologia": "T0".."T5+" ou null, "freguesia": string ou null, "concelho": string, "estado": "novo"|"renovado"|"usado"|"recuperar"|null, "garagem": true/false, "exterior": true/false (varanda, terraço, jardim), "elevador": true/false, "url": link do anúncio ou null}
-Regras: não inventes anúncios nem valores; só anúncios com preço e área; sem repetidos (o mesmo imóvel em vários portais conta uma vez). Se não encontrares nenhum, responde [].''';
-    final res = await _gemini.generate(prompt, googleSearch: true);
+És assistente de uma agência imobiliária em Portugal. Abaixo estão resultados de uma pesquisa em portais imobiliários.
+Procura anúncios de $what ${study.isRental ? 'para arrendar' : 'à venda'} em $where$size.
+Responde APENAS com um array JSON de até 15 anúncios distintos encontrados no texto, cada um assim:
+{"titulo": string, "preco": número em euros${study.isRental ? ' por mês' : ''}, "area": número m² (útil, ou bruta se for a única), "tipologia": "T0".."T5+" ou null, "freguesia": string ou null, "concelho": string ou null, "estado": "novo"|"renovado"|"usado"|"recuperar"|null, "garagem": true/false, "exterior": true/false, "elevador": true/false, "url": link do anúncio (o URL do resultado se não houver outro)}
+Regras: só anúncios que aparecem no texto, com preço e área; não inventes; sem repetidos; ignora preços médios da zona, terrenos e lojas. Se não houver nenhum, responde [].
+
+$pages''';
+    final res = await gemini!.generate(prompt, temperature: 0);
     final json = res.json;
-    final today = formatIsoDate(DateTime.now());
-    final listings = <ComparableListing>[];
+    final out = <ComparableListing>[];
     for (final item in json is List ? json : const []) {
       if (item is! Map) continue;
       final price = parseNum(item['preco']);
       final area = parseNum(item['area']);
-      if (price == null || area == null || price <= 0 || area < 15) continue;
-      // Descarta valores sem sentido (erros de leitura do anúncio).
-      final m2 = price / area;
-      if (rental ? (m2 < 2 || m2 > 100) : (m2 < 150 || m2 > 25000)) continue;
-      String? str(String k) {
-        final v = item[k]?.toString();
-        return v == null || v == 'null' ? null : emptyToNull(v);
-      }
-
-      final url = str('url');
-      listings.add(
-        ComparableListing(
-          id: newId(),
-          title: str('titulo') ?? '$what em ${p.concelho ?? zone}',
+      if (price == null || area == null) continue;
+      out.add(
+        make(
+          title: _str(item, 'titulo'),
           price: price,
           area: area,
-          negocio: p.negocio,
-          tipo: p.tipo,
-          tipologia: str('tipologia') ?? p.tipologia,
-          concelho: str('concelho') ?? p.concelho,
-          freguesia: str('freguesia'),
-          conservation: Conservation.fromName(str('estado')),
+          tipologia: _str(item, 'tipologia'),
+          freguesia: _str(item, 'freguesia'),
+          concelho: _str(item, 'concelho'),
+          conservation: Conservation.fromName(_str(item, 'estado')),
           garage: item['garagem'] == true,
           outdoor: item['exterior'] == true,
           elevator: item['elevador'] == true,
-          sourceUrl: url != null && url.startsWith('http') ? url : null,
-          notes: 'Encontrado pelo Gemini numa pesquisa Google em $today.',
-          date: today,
+          url: _str(item, 'url'),
         ),
       );
     }
-    return AreaSearchResult(
-      listings: listings,
-      sources: res.sources,
-      queries: res.searchQueries,
+    return out;
+  }
+
+  static String? _str(Map item, String k) {
+    final v = item[k]?.toString();
+    return v == null || v == 'null' ? null : emptyToNull(v);
+  }
+
+  /// Lê preço e área do excerto de um anúncio individual, sem IA.
+  static ComparableListing? fromSnippet(
+    WebResult r,
+    bool rental,
+    ListingMaker make,
+  ) {
+    if (!isListingUrl(r.url)) return null;
+    final text = '${r.title} ${r.content}';
+    final price = parsePrice(text, rental: rental);
+    final area = parseArea(text);
+    if (price == null || area == null) return null;
+    final rooms = RegExp(r'\bT\s?(\d)\b').firstMatch(text)?.group(1);
+    return make(
+      title: r.title,
+      price: price,
+      area: area,
+      tipologia: rooms == null ? null : 'T$rooms',
+      url: r.url,
     );
+  }
+
+  /// Página de um anúncio (e não de uma lista de resultados).
+  static bool isListingUrl(String url) => RegExp(
+    r'idealista\.pt/imovel/\d+|imovirtual\.com/pt/anuncio/|'
+    r'casa\.sapo\.pt/.*-\w{8}-|supercasa\.pt/.*/i\d+|remax\.pt/.*/\d|'
+    r'era\.pt/imoveis/|century21\.pt/.*ref|kwportugal\.pt/.*imovel|'
+    r'iadportugal\.pt/.*/\d+',
+    caseSensitive: false,
+  ).hasMatch(url);
+
+  /// "250.000 €", "€ 250 000", "1 200 €/mês" → número.
+  static num? parsePrice(String text, {required bool rental}) {
+    final re = RegExp(
+      r'(?:€\s?(\d{1,3}(?:[.\s ]\d{3})+|\d{3,7}))|'
+      r'(?:(\d{1,3}(?:[.\s ]\d{3})+|\d{3,7})\s?(?:€|eur\b|euros))',
+      caseSensitive: false,
+    );
+    for (final m in re.allMatches(text)) {
+      final v = num.tryParse(
+        (m.group(1) ?? m.group(2))!.replaceAll(RegExp(r'[.\s ]'), ''),
+      );
+      if (v == null) continue;
+      if (rental ? (v >= 150 && v <= 20000) : (v >= 15000)) return v;
+    }
+    return null;
+  }
+
+  /// "85 m²", "85m2", "85,5 m2" → número.
+  static num? parseArea(String text) {
+    for (final m in RegExp(
+      r'(\d{2,4}(?:[.,]\d{1,2})?)\s?m(?:²|2)(?![0-9])',
+      caseSensitive: false,
+    ).allMatches(text)) {
+      final v = num.tryParse(m.group(1)!.replaceAll(',', '.'));
+      if (v != null && v >= 15 && v <= 2000) return v;
+    }
+    return null;
+  }
+
+  /// Tira valores sem sentido e repetidos (mesmo preço e área).
+  static List<ComparableListing> _sane(
+    List<ComparableListing> list,
+    bool rental,
+  ) {
+    final seen = <String>{};
+    return [
+      for (final c in list)
+        if (c.price > 0 &&
+            c.area >= 15 &&
+            (rental
+                ? c.pricePerM2 >= 2 && c.pricePerM2 <= 100
+                : c.pricePerM2 >= 150 && c.pricePerM2 <= 25000) &&
+            seen.add('${c.price}|${c.area}'))
+          c,
+    ];
   }
 
   /// Comentário de mercado para o PDF, só com os números do estudo.
@@ -132,7 +323,11 @@ Escreve 3 ou 4 parágrafos curtos, sem títulos nem listas: (1) a zona e a evolu
 
 Dados do estudo:
 ${lines.join('\n')}''';
-    final res = await _gemini.generate(prompt, temperature: 0.4);
+    final gemini = this.gemini;
+    if (gemini == null) {
+      throw const GeminiException('Falta a chave do Gemini para escrever.');
+    }
+    final res = await gemini.generate(prompt, temperature: 0.4);
     final text = res.text.trim();
     if (text.isEmpty) {
       throw const GeminiException('O Gemini não escreveu o comentário.');

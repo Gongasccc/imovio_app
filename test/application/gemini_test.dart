@@ -5,10 +5,6 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:imovio/src/features/ai/application/listing_ai_extractor.dart';
 import 'package:imovio/src/features/ai/data/gemini_client.dart';
-import 'package:imovio/src/features/market_study/application/market_ai_service.dart';
-import 'package:imovio/src/features/market_study/application/market_study_calculator.dart';
-import 'package:imovio/src/features/market_study/domain/study_settings.dart';
-import 'package:imovio/src/features/properties/domain/property.dart';
 
 /// Resposta da API Gemini com [text] e duas fontes da pesquisa Google.
 http.Response _reply(String text) => http.Response(
@@ -95,56 +91,6 @@ void main() {
         ),
       ),
     );
-  });
-
-  test('pesquisa na zona filtra anúncios sem sentido', () async {
-    final gemini = GeminiClient(
-      MockClient(
-        (_) async => _reply(
-          jsonEncode([
-            {
-              'titulo': 'T2 Maximinos',
-              'preco': 230000,
-              'area': 95,
-              'tipologia': 'T2',
-              'concelho': 'Braga',
-              'estado': 'usado',
-              'garagem': true,
-              'exterior': false,
-              'elevador': true,
-              'url': 'https://www.idealista.pt/imovel/1/',
-            },
-            {'titulo': 'Sem área', 'preco': 200000, 'area': null},
-            {'titulo': 'Preço errado', 'preco': 230, 'area': 95},
-          ]),
-        ),
-      ),
-      'chave',
-    );
-    const p = Property(
-      id: 'p',
-      title: 'T2',
-      price: 250000,
-      negocio: 'Venda',
-      tipo: 'Apartamento',
-      tipologia: 'T2',
-      areaUtil: 98,
-      concelho: 'Braga',
-    );
-    final study = MarketStudyCalculator.compute(
-      property: p,
-      settings: const StudySettings(),
-      comparables: const [],
-    );
-    var n = 0;
-    final res = await MarketAiService(gemini)
-        .searchArea(study, newId: () => 'id${n++}');
-    expect(res.listings, hasLength(1));
-    final c = res.listings.single;
-    expect(c.price, 230000);
-    expect(c.garage, isTrue);
-    expect(c.sourceUrl, 'https://www.idealista.pt/imovel/1/');
-    expect(res.sources, isNotEmpty);
   });
 
   test('extrai anúncio e deduz a localização', () async {

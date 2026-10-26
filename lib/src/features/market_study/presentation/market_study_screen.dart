@@ -7,7 +7,9 @@ import 'package:imovio/src/common_widgets/responsive_center.dart';
 import 'package:imovio/src/common_widgets/section_card.dart';
 import 'package:imovio/src/constants/app_sizes.dart';
 import 'package:imovio/src/features/ai/data/gemini_repository.dart';
+import 'package:imovio/src/features/ai/data/tavily_repository.dart';
 import 'package:imovio/src/features/ai/presentation/gemini_key_dialog.dart';
+import 'package:imovio/src/features/ai/presentation/tavily_key_dialog.dart';
 import 'package:imovio/src/features/market_study/application/market_study_service.dart';
 import 'package:imovio/src/features/market_study/domain/comparable_listing.dart';
 import 'package:imovio/src/features/market_study/domain/market_study.dart';
@@ -38,6 +40,15 @@ class MarketStudyScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Estudo de Mercado'),
         actions: [
+          IconButton(
+            tooltip: 'Chave da pesquisa de preços (Tavily)',
+            icon: Icon(
+              ref.watch(tavilyKeyProvider).value == null
+                  ? Icons.search_off
+                  : Icons.travel_explore,
+            ),
+            onPressed: () => showTavilyKeyDialog(context),
+          ),
           IconButton(
             tooltip: 'Ligar o Gemini',
             icon: Icon(
@@ -347,7 +358,7 @@ class _ComparablesCard extends ConsumerWidget {
   }
 
   Future<void> _searchArea(BuildContext context, WidgetRef ref) async {
-    if (!await _ensureGemini(context, ref) || !context.mounted) return;
+    if (!await _ensureTavily(context, ref) || !context.mounted) return;
     final controller = ref.read(marketStudyControllerProvider.notifier);
     final result = await controller.searchArea(study);
     if (result == null || !context.mounted) return;
@@ -850,6 +861,13 @@ class _NotesCardState extends State<_NotesCard> {
 }
 
 /// Garante que há chave do Gemini, pedindo-a se for preciso.
+/// Garante que há chave da pesquisa (Tavily), pedindo-a se for preciso.
+Future<bool> _ensureTavily(BuildContext context, WidgetRef ref) async {
+  if (await ref.read(tavilyKeyProvider.future) != null) return true;
+  if (!context.mounted) return false;
+  return showTavilyKeyDialog(context);
+}
+
 Future<bool> _ensureGemini(BuildContext context, WidgetRef ref) async {
   if (await ref.read(geminiKeyProvider.future) != null) return true;
   if (!context.mounted) return false;

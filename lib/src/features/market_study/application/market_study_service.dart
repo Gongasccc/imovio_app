@@ -1,6 +1,8 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:imovio/src/features/ai/data/gemini_client.dart';
 import 'package:imovio/src/features/ai/data/gemini_repository.dart';
+import 'package:imovio/src/features/ai/data/tavily_client.dart';
+import 'package:imovio/src/features/ai/data/tavily_repository.dart';
 import 'package:imovio/src/features/authentication/data/firebase_auth_repository.dart';
 import 'package:imovio/src/features/market_study/application/market_ai_service.dart';
 import 'package:imovio/src/features/market_study/application/market_study_calculator.dart';
@@ -53,6 +55,7 @@ class MarketStudyController extends _$MarketStudyController {
   @override
   FutureOr<void> build() {}
 
+  /// Gemini: obrigatório só para escrever o comentário.
   Future<MarketAiService> _ai() async {
     final gemini = await ref.read(geminiClientProvider.future);
     if (gemini == null) {
@@ -60,19 +63,32 @@ class MarketStudyController extends _$MarketStudyController {
         'Configure primeiro a chave do Gemini (ícone da chave no topo).',
       );
     }
-    return MarketAiService(gemini);
+    return MarketAiService(gemini: gemini);
   }
 
-  /// Procura com o Gemini anúncios semelhantes na zona.
+  /// Procura anúncios semelhantes na zona: pesquisa no Tavily e leitura
+  /// pelo Gemini quando houver chave (sem Gemini, a app lê o texto).
   Future<AreaSearchResult?> searchArea(MarketStudy study) async {
     AreaSearchResult? result;
     final repo = ref.read(marketStudyRepositoryProvider);
     final uid = ref.read(currentUidProvider);
     await _run(() async {
-      result = await (await _ai()).searchArea(
-        study,
-        newId: () => repo.newComparableId(uid),
-      );
+      final tavily = await ref.read(tavilyClientProvider.future);
+      if (tavily == null) {
+        throw const TavilyException(
+          'Configure primeiro a chave da pesquisa (Tavily).',
+        );
+      }
+      GeminiClient? gemini;
+      try {
+        gemini = await ref.read(geminiClientProvider.future);
+      } catch (_) {
+        // Sem Gemini a pesquisa continua, lida pela app.
+      }
+      result = await MarketAiService(
+        gemini: gemini,
+        tavily: tavily,
+      ).searchArea(study, newId: () => repo.newComparableId(uid));
     });
     return result;
   }

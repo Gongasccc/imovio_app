@@ -281,6 +281,14 @@ class GeminiClient {
         status: status,
       );
     }
+    if (status == 429 && message.contains('limit: 0')) {
+      // A Google não dá uso grátis deste modelo/função a esta chave (não é
+      // falta de uso: o limite gratuito é zero).
+      return GeminiException(
+        'A Google não dá uso grátis desta função do Gemini à sua chave.',
+        status: status,
+      );
+    }
     if (status == 429) {
       return GeminiException(
         'Atingiu o limite gratuito do Gemini por agora. Tente mais tarde.',

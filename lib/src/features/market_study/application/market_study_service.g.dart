@@ -122,7 +122,7 @@ final class MarketStudyControllerProvider
 }
 
 String _$marketStudyControllerHash() =>
-    r'9eed446dab46ec1988ed2e5af2887e5d96d23c77';
+    r'cff43b7789a23ae10082a75d9c47779b143a1d4a';
 
 abstract class _$MarketStudyController extends $AsyncNotifier<void> {
   FutureOr<void> build();

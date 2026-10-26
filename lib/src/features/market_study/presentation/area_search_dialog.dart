@@ -40,13 +40,19 @@ class _AreaSearchDialogState extends State<_AreaSearchDialog> {
           children: [
             if (r.listings.isEmpty)
               const Text(
-                'O Gemini não encontrou anúncios semelhantes com '
+                'A pesquisa não encontrou anúncios semelhantes com '
                 'preço e área. Tente mais tarde ou adicione por link.',
               )
             else
               const Text(
                 'Confirme os que são mesmo comparáveis. Pode '
                 'corrigir qualquer um depois em "Editar".',
+              ),
+            if (r.listings.isNotEmpty && !r.readByAi)
+              Text(
+                'Lidos pela app sem IA (o Gemini não estava disponível): '
+                'confirme preço e área no anúncio.',
+                style: muted,
               ),
             gapH8,
             for (final c in r.listings)
@@ -80,7 +86,7 @@ class _AreaSearchDialogState extends State<_AreaSearchDialog> {
               ),
             if (r.sources.isNotEmpty || r.queries.isNotEmpty) ...[
               const Divider(),
-              Text('Fontes da pesquisa Google', style: muted),
+              Text('Páginas encontradas', style: muted),
               Wrap(
                 spacing: Sizes.p4,
                 children: [
