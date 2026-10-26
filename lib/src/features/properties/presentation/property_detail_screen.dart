@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:imovio/src/utils/open_in_maps.dart';
 import 'package:imovio/src/features/brochure/presentation/brochure_actions.dart'
     deferred as brochure;
 import 'package:imovio/src/features/documents_ai/presentation/land_registry_button.dart';
@@ -184,32 +185,65 @@ class _PropertyDetailState extends ConsumerState<_PropertyDetail>
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
+              // No telemóvel só ficam à vista as duas ações mais usadas; as
+              // outras vão para o menu ⋮, para o título caber.
               actions: [
+                IconButton(
+                  tooltip: 'Abrir no mapa',
+                  icon: const Icon(Icons.directions_outlined),
+                  onPressed: () => showOpenInMapsSheet(
+                    context,
+                    lat: p.lat,
+                    lng: p.lng,
+                    address: _data.toProperty().fullAddress,
+                  ),
+                ),
                 IconButton(
                   tooltip: 'Ficha do imóvel (PDF)',
                   icon: const Icon(Icons.picture_as_pdf_outlined),
                   onPressed: () => _openBrochure(context),
                 ),
-                IconButton(
-                  tooltip: 'Estudo de mercado',
-                  icon: const Icon(Icons.query_stats),
-                  onPressed: () => context.pushNamed(
-                    AppRoute.marketStudy.name,
-                    pathParameters: {'id': p.id},
-                  ),
+                PopupMenuButton<String>(
+                  tooltip: 'Mais',
+                  onSelected: (action) {
+                    switch (action) {
+                      case 'study':
+                        context.pushNamed(
+                          AppRoute.marketStudy.name,
+                          pathParameters: {'id': p.id},
+                        );
+                      case 'source':
+                        openExternalUrl(p.sourceUrl!);
+                      case 'delete':
+                        if (!saving) _delete();
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(
+                      value: 'study',
+                      child: ListTile(
+                        leading: Icon(Icons.query_stats),
+                        title: Text('Estudo de mercado'),
+                      ),
+                    ),
+                    if (p.sourceUrl != null)
+                      const PopupMenuItem(
+                        value: 'source',
+                        child: ListTile(
+                          leading: Icon(Icons.open_in_new),
+                          title: Text('Ver anúncio original'),
+                        ),
+                      ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: ListTile(
+                        leading: Icon(Icons.delete_outline),
+                        title: Text('Eliminar imóvel'),
+                      ),
+                    ),
+                  ],
                 ),
-                if (p.sourceUrl != null)
-                  IconButton(
-                    tooltip: 'Fonte original',
-                    icon: const Icon(Icons.open_in_new),
-                    onPressed: () => openExternalUrl(p.sourceUrl!),
-                  ),
-                IconButton(
-                  tooltip: 'Eliminar imóvel',
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: saving ? null : _delete,
-                ),
-                gapW8,
+                gapW4,
               ],
               flexibleSpace: FlexibleSpaceBar(
                 background: Stack(
@@ -437,10 +471,9 @@ class _PropertyDetailState extends ConsumerState<_PropertyDetail>
                 onChanged: (v) => setState(() => _data.contractType = v),
               ),
               TextDropdown(
-                label: 'Negócio em',
+                label: 'Tipo de negócio',
                 value: _data.saleMode,
                 options: PropertyOptions.saleModes,
-                optionLabels: PropertyOptions.saleModeLabels,
                 onChanged: (v) =>
                     setState(() => _data.saleMode = v ?? _data.saleMode),
               ),
@@ -471,17 +504,17 @@ class _PropertyDetailState extends ConsumerState<_PropertyDetail>
                 helper: 'Calculado a partir do valor e da percentagem',
               ),
               number(
-                'vatPct',
-                'IVA da comissão',
-                suffix: '%',
-                helper: 'Normalmente 23 %',
-              ),
-              number(
                 'agentSplitPct',
                 'A sua parte da comissão',
                 hint: '50',
                 suffix: '%',
                 helper: 'O que fica para si da comissão da agência',
+              ),
+              number(
+                'vatPct',
+                'IVA',
+                suffix: '%',
+                helper: 'Descontado ao que fica para si',
               ),
               DateTimeField(
                 label: 'Data de Angariação',

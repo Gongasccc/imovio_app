@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:imovio/src/constants/app_sizes.dart';
 import 'package:imovio/src/constants/app_theme.dart';
@@ -72,6 +73,7 @@ class ScaffoldWithNestedNavigation extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
 
   void _goBranch(int index) {
+    HapticFeedback.selectionClick();
     navigationShell.goBranch(
       index,
       initialLocation: index == navigationShell.currentIndex,

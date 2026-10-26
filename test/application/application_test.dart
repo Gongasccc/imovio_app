@@ -205,7 +205,8 @@ void main() {
       expect(s.agencyCommission, 15250);
       expect(s.agentShare, 9150);
       expect(s.expensesTotal, 429.9);
-      expect(s.profit, 8720.1);
+      expect(s.vat, 2104.5);
+      expect(s.profit, 6615.6);
       expect(s.discount, 15000);
       expect(s.daysOnMarket, 141);
       expect(s.isSold, isTrue);
@@ -217,7 +218,8 @@ void main() {
       expect(s.salePrice, 200000);
       expect(s.agencyCommission, 8000);
       expect(s.agentShare, 4000);
-      expect(s.profit, 4000);
+      expect(s.vat, 920);
+      expect(s.profit, 3080);
       expect(s.isSold, isFalse);
     });
   });

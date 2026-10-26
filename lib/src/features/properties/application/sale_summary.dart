@@ -7,10 +7,9 @@ import 'package:imovio/src/utils/format.dart';
 ///
 ///   comissão total       = valor de venda × comissão %
 ///   comissão da agência  = comissão total × (partilha ? % da partilha : 100 %)
-///   IVA                  = comissão da agência × IVA % (pago pelo cliente,
-///                          entregue ao Estado; não entra no lucro)
-///   a sua parte          = comissão da agência (sem IVA) × a sua %
-///   lucro real           = a sua parte − despesas do imóvel
+///   a sua parte          = comissão da agência × a sua %
+///   IVA                  = a sua parte × IVA % (descontado ao que recebe)
+///   lucro real           = a sua parte − IVA − despesas do imóvel
 class SaleSummary extends Equatable {
   const SaleSummary({
     required this.listedPrice,
@@ -44,6 +43,8 @@ class SaleSummary extends Equatable {
   /// A comissão que fica para a nossa agência (sem IVA).
   final num agencyCommission;
   final num vatPct;
+
+  /// IVA descontado à sua parte.
   final num vat;
   final num agentSplitPct;
   final num agentShare;
@@ -54,7 +55,8 @@ class SaleSummary extends Equatable {
   final String? contractType;
   final int? daysOnMarket;
 
-  num get agencyCommissionWithVat => agencyCommission + vat;
+  /// A sua parte depois de tirar o IVA.
+  num get agentShareNet => agentShare - vat;
 
   /// Diferença entre o anunciado e o vendido (positivo = desconto).
   num? get discount => listedPrice == null || salePrice == null
@@ -110,6 +112,7 @@ SaleSummary computeSaleSummary(
   final vatPct = property.vatPct ?? PropertyOptions.defaultVatPct;
   final split = property.agentSplitPct ?? defaultAgentSplitPct;
   final share = agency * split / 100;
+  final vat = share * vatPct / 100;
   final spent = expenses.fold<num>(0, (sum, e) => sum + e.amount);
   final start = parseDate(property.dateStart);
   final end = parseDate(property.dateEnd);
@@ -122,12 +125,12 @@ SaleSummary computeSaleSummary(
     sharePct: sharePct,
     agencyCommission: _round2(agency),
     vatPct: vatPct,
-    vat: _round2(agency * vatPct / 100),
+    vat: _round2(vat),
     agentSplitPct: split,
     agentShare: _round2(share),
     expensesTotal: _round2(spent),
     expensesCount: expenses.length,
-    profit: _round2(share - spent),
+    profit: _round2(share - vat - spent),
     isSold: property.isSold,
     contractType: property.contractType,
     daysOnMarket: start != null && end != null

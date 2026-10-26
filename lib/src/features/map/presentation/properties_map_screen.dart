@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
+import 'package:imovio/src/utils/open_in_maps.dart';
 import 'package:imovio/src/constants/app_theme.dart';
 import 'package:imovio/src/features/authentication/data/firebase_auth_repository.dart';
 import 'package:imovio/src/features/geo/data/geocoder.dart';
@@ -65,7 +66,6 @@ class _PropertiesMapScreenState extends ConsumerState<PropertiesMapScreen> {
     final shown = all
         .where((p) => p.hasLocation && (_showSold || !p.isSold))
         .toList();
-    final dark = Theme.of(context).brightness == Brightness.dark;
     final points = [for (final p in shown) LatLng(p.lat!, p.lng!)];
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
@@ -105,12 +105,19 @@ class _PropertiesMapScreenState extends ConsumerState<PropertiesMapScreen> {
               onTap: (_, _) => setState(() => _selected = null),
             ),
             children: [
+              // Mapa escuro por omissão (Esri "Dark Gray Canvas", gratuito),
+              // com os nomes das localidades numa camada por cima.
               TileLayer(
-                // Mapa do OpenStreetMap; no modo escuro as cores são
-                // invertidas para combinar com a app.
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                urlTemplate: 'https://server.arcgisonline.com/ArcGIS/rest/services/'
+                    'Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
                 userAgentPackageName: 'pt.imovio.imovio',
-                tileBuilder: dark ? darkModeTileBuilder : null,
+                maxNativeZoom: 16,
+              ),
+              TileLayer(
+                urlTemplate: 'https://server.arcgisonline.com/ArcGIS/rest/services/'
+                    'Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',
+                userAgentPackageName: 'pt.imovio.imovio',
+                maxNativeZoom: 16,
               ),
               MarkerLayer(
                 markers: [
@@ -135,7 +142,7 @@ class _PropertiesMapScreenState extends ConsumerState<PropertiesMapScreen> {
               ),
               const RichAttributionWidget(
                 attributions: [
-                  TextSourceAttribution('© OpenStreetMap'),
+                  TextSourceAttribution('Esri, HERE, Garmin, © OpenStreetMap'),
                 ],
               ),
             ],
@@ -160,7 +167,25 @@ class _PropertiesMapScreenState extends ConsumerState<PropertiesMapScreen> {
               child: Card(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: PropertyListTile(property: _selected!),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      PropertyListTile(property: _selected!),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          icon: const Icon(Icons.directions_outlined),
+                          label: const Text('Abrir no mapa'),
+                          onPressed: () => showOpenInMapsSheet(
+                            context,
+                            lat: _selected!.lat,
+                            lng: _selected!.lng,
+                            address: _selected!.fullAddress,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

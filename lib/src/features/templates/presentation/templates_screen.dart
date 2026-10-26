@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:imovio/src/common_widgets/adaptive_fab.dart';
 import 'package:imovio/src/common_widgets/async_value_widget.dart';
 import 'package:imovio/src/common_widgets/responsive_center.dart';
 import 'package:imovio/src/constants/app_sizes.dart';
@@ -32,10 +33,10 @@ class TemplatesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(title: const Text('Modelos de mensagens')),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: AdaptiveFab(
         onPressed: () => _edit(context, ref),
-        icon: const Icon(Icons.add),
-        label: const Text('Novo modelo'),
+        icon: Icons.add,
+        label: 'Novo modelo',
       ),
       body: AsyncValueWidget<List<MessageTemplate>>(
         value: ref.watch(templatesProvider),

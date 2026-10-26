@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:imovio/src/common_widgets/adaptive_fab.dart';
 import 'package:imovio/src/common_widgets/async_value_widget.dart';
 import 'package:imovio/src/common_widgets/page_header.dart';
 import 'package:imovio/src/constants/app_sizes.dart';
@@ -25,10 +26,10 @@ class PipelineScreen extends ConsumerWidget {
     final deals = dealsValue.value ?? const <Deal>[];
     final total = deals.fold<num>(0, (sum, d) => sum + (d.value ?? 0));
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: AdaptiveFab(
         onPressed: () => context.pushNamed(AppRoute.newDeal.name),
-        icon: const Icon(Icons.add),
-        label: const Text('Novo Negócio'),
+        icon: Icons.add,
+        label: 'Novo Negócio',
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

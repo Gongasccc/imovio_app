@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:imovio/src/features/tasks/presentation/swipeable_task_tile.dart';
+import 'package:imovio/src/common_widgets/adaptive_fab.dart';
 import 'package:imovio/src/features/tasks/presentation/calendar_export_button.dart';
 import 'package:imovio/src/common_widgets/async_value_widget.dart';
 import 'package:imovio/src/common_widgets/empty_placeholder.dart';
@@ -10,7 +12,6 @@ import 'package:imovio/src/constants/app_sizes.dart';
 import 'package:imovio/src/features/settings/data/local_preferences.dart';
 import 'package:imovio/src/features/tasks/data/tasks_repository.dart';
 import 'package:imovio/src/features/tasks/domain/task.dart';
-import 'package:imovio/src/features/tasks/presentation/task_tile.dart';
 import 'package:imovio/src/features/tasks/presentation/tasks_calendar.dart';
 import 'package:imovio/src/routing/app_router.dart';
 
@@ -30,10 +31,10 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
   Widget build(BuildContext context) {
     final tasksValue = ref.watch(tasksStreamProvider);
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: AdaptiveFab(
         onPressed: () => context.pushNamed(AppRoute.newTask.name),
-        icon: const Icon(Icons.add_task),
-        label: const Text('Nova tarefa'),
+        icon: Icons.add_task,
+        label: 'Nova tarefa',
       ),
       body: ListView(
         padding: const EdgeInsets.only(bottom: 96),
@@ -127,7 +128,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                           children: [
                             for (final (i, t) in filtered.indexed) ...[
                               if (i > 0) const Divider(),
-                              TaskTile(task: t, showDelete: true),
+                              SwipeableTaskTile(task: t),
                             ],
                           ],
                         ),

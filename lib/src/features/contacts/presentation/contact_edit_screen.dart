@@ -248,30 +248,50 @@ class _ContactFormState extends ConsumerState<_ContactForm>
                 onPressed: () => ContactActions(ref).whatsapp(contact!),
               ),
             ],
-            if (contact != null &&
-                (contact.phone != null || contact.email != null))
-              IconButton(
-                tooltip: 'Mensagem com modelo',
-                icon: const Icon(Icons.send_outlined),
-                onPressed: () => showSendMessageSheet(
-                  context,
-                  contact: contact,
-                  initialTemplateId: 'builtin-seguimento',
-                ),
+            if (contact != null)
+              PopupMenuButton<String>(
+                tooltip: 'Mais',
+                onSelected: (action) {
+                  switch (action) {
+                    case 'message':
+                      showSendMessageSheet(
+                        context,
+                        contact: contact,
+                        initialTemplateId: 'builtin-seguimento',
+                      );
+                    case 'email':
+                      ContactActions(ref).email(contact);
+                    case 'delete':
+                      if (!saving) _delete();
+                  }
+                },
+                itemBuilder: (_) => [
+                  if (contact.phone != null || contact.email != null)
+                    const PopupMenuItem(
+                      value: 'message',
+                      child: ListTile(
+                        leading: Icon(Icons.send_outlined),
+                        title: Text('Mensagem com modelo'),
+                      ),
+                    ),
+                  if (contact.email != null)
+                    const PopupMenuItem(
+                      value: 'email',
+                      child: ListTile(
+                        leading: Icon(Icons.mail_outline),
+                        title: Text('Enviar email'),
+                      ),
+                    ),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: ListTile(
+                      leading: Icon(Icons.delete_outline),
+                      title: Text('Eliminar contacto'),
+                    ),
+                  ),
+                ],
               ),
-            if (contact?.email != null)
-              IconButton(
-                tooltip: 'Enviar email',
-                icon: const Icon(Icons.mail_outline),
-                onPressed: () => ContactActions(ref).email(contact!),
-              ),
-            if (!_isNew)
-              IconButton(
-                tooltip: 'Eliminar contacto',
-                icon: const Icon(Icons.delete_outline),
-                onPressed: saving ? null : _delete,
-              ),
-            gapW8,
+            gapW4,
           ],
           bottom: TabBar(
             controller: _tabs,

@@ -73,7 +73,10 @@ class PropertyBrochurePdf {
               horizontalRadius: 8,
               verticalRadius: 8,
               child: pw.Image(photos.first,
-                  height: 280, width: double.infinity, fit: pw.BoxFit.cover),
+                  height: 280,
+                  // Largura útil da página (double.infinity rebenta no PDF).
+                  width: format.width - 64,
+                  fit: pw.BoxFit.cover),
             ),
           pw.SizedBox(height: 16),
           pw.Row(

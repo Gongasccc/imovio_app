@@ -38,7 +38,7 @@ class CpcvSheetPdf {
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
               pw.Container(
-                width: double.infinity,
+                width: format.width - 72,
                 padding:
                     const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 color: pdfGold,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:imovio/src/common_widgets/adaptive_fab.dart';
 import 'package:imovio/src/common_widgets/async_value_widget.dart';
 import 'package:imovio/src/common_widgets/empty_placeholder.dart';
 import 'package:imovio/src/common_widgets/page_header.dart';
@@ -62,10 +63,10 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
     final all = contactsValue.value ?? const <Contact>[];
     final origins = {for (final c in all) c.originLabel}.toList()..sort();
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: AdaptiveFab(
         onPressed: () => context.pushNamed(AppRoute.newContact.name),
-        icon: const Icon(Icons.person_add_alt),
-        label: const Text('Novo contacto'),
+        icon: Icons.person_add_alt,
+        label: 'Novo contacto',
       ),
       body: CustomScrollView(
         slivers: [

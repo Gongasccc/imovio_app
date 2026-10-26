@@ -127,21 +127,18 @@ class SaleSummaryCard extends StatelessWidget {
                   ? '${Format.number(s.sharePct)} % da comissão (partilha)'
                   : s.commissionPct == null
                   ? 'Indique a comissão (%)'
-                  : '${Format.number(s.commissionPct)} % do valor de venda, '
-                        'sem IVA',
-            ),
-            row(
-              'IVA da comissão',
-              '+ ${Format.eurosWithCents(s.vat)}',
-              note:
-                  '${Format.number(s.vatPct)} % · total a faturar '
-                  '${Format.eurosWithCents(s.agencyCommissionWithVat)}',
+                  : '${Format.number(s.commissionPct)} % do valor de venda',
             ),
             row(
               'A sua parte',
               Format.eurosWithCents(s.agentShare),
-              note:
-                  '${Format.number(s.agentSplitPct)} % da comissão sem IVA',
+              note: '${Format.number(s.agentSplitPct)} % da comissão',
+            ),
+            row(
+              'IVA',
+              '− ${Format.eurosWithCents(s.vat)}',
+              note: '${Format.number(s.vatPct)} % da sua parte · fica '
+                  '${Format.eurosWithCents(s.agentShareNet)}',
             ),
             row(
               'Despesas do imóvel',

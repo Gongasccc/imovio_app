@@ -36,6 +36,8 @@ class _DemoUser implements User {
   @override
   String? get email => 'demo@imovio.pt';
   @override
+  String? get displayName => 'Consultor Demo';
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 

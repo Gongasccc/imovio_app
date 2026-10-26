@@ -19,10 +19,6 @@ class PropertyOptions {
     'Sem contrato',
   ];
   static const saleModes = ['Pleno', 'Partilha'];
-  static const saleModeLabels = {
-    'Pleno': 'Pleno (só a nossa agência)',
-    'Partilha': 'Partilha (com outra agência)',
-  };
   static const defaultVatPct = 23;
   static const defaultSharePct = 50;
   static const saleStatusLabels = {
@@ -138,6 +134,12 @@ class Property extends Equatable {
   final double? lng;
 
   bool get hasLocation => lat != null && lng != null;
+
+  /// Morada completa para pesquisar num mapa.
+  String get fullAddress => [morada, cp, freguesia, concelho, distrito, 'Portugal']
+      .whereType<String>()
+      .where((s) => s.isNotEmpty)
+      .join(', ');
   final String? dateStart;
   final String? dateEnd;
   final String? saleNotes;

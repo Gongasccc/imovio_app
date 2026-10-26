@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:imovio/src/common_widgets/adaptive_fab.dart';
 import 'package:imovio/src/common_widgets/empty_placeholder.dart';
 import 'package:imovio/src/common_widgets/page_header.dart';
 import 'package:imovio/src/constants/app_sizes.dart';
@@ -54,10 +55,10 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
       (p) => _concelho == null || p.concelho == _concelho,
     );
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: AdaptiveFab(
         onPressed: () => context.pushNamed(AppRoute.newProperty.name),
-        icon: const Icon(Icons.add_home_outlined),
-        label: const Text('Cadastrar Novo Imóvel'),
+        icon: Icons.add_home_outlined,
+        label: 'Cadastrar Novo Imóvel',
       ),
       // Lista "preguiçosa": só desenha os cartões que estão no ecrã, para
       // continuar rápida com centenas de imóveis.

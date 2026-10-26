@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:imovio/src/features/tasks/presentation/swipeable_task_tile.dart';
 import 'package:imovio/src/constants/app_sizes.dart';
 import 'package:imovio/src/features/tasks/domain/task.dart';
-import 'package:imovio/src/features/tasks/presentation/task_tile.dart';
 import 'package:imovio/src/routing/app_router.dart';
 import 'package:imovio/src/utils/format.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -100,7 +100,7 @@ class _TasksCalendarState extends State<TasksCalendar> {
                   child: Text('Sem tarefas neste dia.'),
                 )
               else
-                for (final t in dayTasks) TaskTile(task: t, showDelete: true),
+                for (final t in dayTasks) SwipeableTaskTile(task: t),
             ],
           ),
         ),
