@@ -6,7 +6,8 @@ import 'package:imovio/src/features/tasks/data/tasks_repository.dart';
 import 'package:imovio/src/features/properties/data/properties_repository.dart';
 import 'package:imovio/src/features/pipeline/data/deals_repository.dart';
 import 'package:imovio/src/features/interactions/data/interactions_repository.dart';
-import 'package:imovio/src/features/export/application/export_service.dart';
+import 'package:imovio/src/features/export/application/export_service.dart'
+    deferred as backup;
 import 'package:imovio/src/features/expenses/data/expenses_repository.dart';
 import 'package:imovio/src/features/contacts/data/contacts_repository.dart';
 import 'package:imovio/src/common_widgets/responsive_center.dart';
@@ -230,8 +231,10 @@ class _BackupCard extends ConsumerWidget {
         subtitle: const Text(
             'Contactos, imóveis, negócios, tarefas, despesas e interações'),
         trailing: const Icon(Icons.download_outlined),
-        onTap: () {
-          final bytes = exportAllToXlsx(
+        onTap: () async {
+          await backup.loadLibrary();
+          if (!context.mounted) return;
+          final bytes = backup.exportAllToXlsx(
             contacts: ref.read(contactsStreamProvider).value ?? const [],
             properties: ref.read(propertiesStreamProvider).value ?? const [],
             deals: ref.read(dealsStreamProvider).value ?? const [],

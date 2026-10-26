@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:imovio/src/common_widgets/deferred_screen.dart';
 import 'package:imovio/src/features/authentication/data/firebase_auth_repository.dart';
 import 'package:imovio/src/features/authentication/presentation/sign_in_screen.dart';
 import 'package:imovio/src/features/contacts/presentation/contact_edit_screen.dart';
 import 'package:imovio/src/features/contacts/presentation/contacts_screen.dart';
 import 'package:imovio/src/features/dashboard/presentation/dashboard_screen.dart';
-import 'package:imovio/src/features/market_study/presentation/market_study_pdf_screen.dart';
-import 'package:imovio/src/features/market_study/presentation/market_study_screen.dart';
+import 'package:imovio/src/features/market_study/presentation/market_study_pdf_screen.dart'
+    deferred as study_pdf;
+import 'package:imovio/src/features/market_study/presentation/market_study_screen.dart'
+    deferred as study;
 import 'package:imovio/src/features/pipeline/presentation/deal_edit_screen.dart';
 import 'package:imovio/src/features/pipeline/presentation/pipeline_screen.dart';
 import 'package:imovio/src/features/properties/presentation/properties_screen.dart';
@@ -17,9 +20,12 @@ import 'package:imovio/src/features/settings/presentation/settings_screen.dart';
 import 'package:imovio/src/features/tasks/presentation/task_edit_screen.dart';
 import 'package:imovio/src/features/team/presentation/team_screen.dart';
 import 'package:imovio/src/features/tasks/presentation/tasks_screen.dart';
-import 'package:imovio/src/features/goals/presentation/goals_screen.dart';
-import 'package:imovio/src/features/map/presentation/properties_map_screen.dart';
-import 'package:imovio/src/features/templates/presentation/templates_screen.dart';
+import 'package:imovio/src/features/goals/presentation/goals_screen.dart'
+    deferred as goals;
+import 'package:imovio/src/features/map/presentation/properties_map_screen.dart'
+    deferred as map;
+import 'package:imovio/src/features/templates/presentation/templates_screen.dart'
+    deferred as templates;
 import 'package:imovio/src/routing/go_router_refresh_stream.dart';
 import 'package:imovio/src/routing/not_found_screen.dart';
 import 'package:imovio/src/routing/scaffold_with_nested_navigation.dart';
@@ -112,19 +118,28 @@ GoRouter goRouter(Ref ref) {
         path: '/templates',
         name: AppRoute.templates.name,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const TemplatesScreen(),
+        builder: (context, state) => DeferredScreen(
+          load: templates.loadLibrary,
+          builder: (_) => templates.TemplatesScreen(),
+        ),
       ),
       GoRoute(
         path: '/goals',
         name: AppRoute.goals.name,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const GoalsScreen(),
+        builder: (context, state) => DeferredScreen(
+          load: goals.loadLibrary,
+          builder: (_) => goals.GoalsScreen(),
+        ),
       ),
       GoRoute(
         path: '/map',
         name: AppRoute.map.name,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const PropertiesMapScreen(),
+        builder: (context, state) => DeferredScreen(
+          load: map.loadLibrary,
+          builder: (_) => map.PropertiesMapScreen(),
+        ),
       ),
       GoRoute(
         path: '/team',
@@ -204,16 +219,22 @@ GoRouter goRouter(Ref ref) {
                         path: 'estudo',
                         name: AppRoute.marketStudy.name,
                         parentNavigatorKey: _rootNavigatorKey,
-                        builder: (context, state) => MarketStudyScreen(
-                          propertyId: state.pathParameters['id']!,
+                        builder: (context, state) => DeferredScreen(
+                          load: study.loadLibrary,
+                          builder: (_) => study.MarketStudyScreen(
+                            propertyId: state.pathParameters['id']!,
+                          ),
                         ),
                         routes: [
                           GoRoute(
                             path: 'pdf',
                             name: AppRoute.marketStudyPdf.name,
                             parentNavigatorKey: _rootNavigatorKey,
-                            builder: (context, state) => MarketStudyPdfScreen(
-                              propertyId: state.pathParameters['id']!,
+                            builder: (context, state) => DeferredScreen(
+                              load: study_pdf.loadLibrary,
+                              builder: (_) => study_pdf.MarketStudyPdfScreen(
+                                propertyId: state.pathParameters['id']!,
+                              ),
                             ),
                           ),
                         ],

@@ -6,6 +6,12 @@ import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart' show FirebaseFirestore;
 import 'package:firebase_storage/firebase_storage.dart' show FirebaseStorage;
+import 'package:imovio/src/features/templates/domain/message_template.dart';
+import 'package:imovio/src/features/templates/data/templates_repository.dart';
+import 'package:imovio/src/features/interactions/domain/interaction.dart';
+import 'package:imovio/src/features/interactions/data/interactions_repository.dart';
+import 'package:imovio/src/features/goals/domain/goals.dart';
+import 'package:imovio/src/features/goals/data/goals_repository.dart';
 import 'package:imovio/src/features/authentication/domain/app_user.dart';
 import 'package:imovio/src/features/contacts/data/contacts_repository.dart';
 import 'package:imovio/src/features/contacts/domain/contact.dart';
@@ -216,6 +222,15 @@ class DemoPropertiesRepository extends PropertiesRepository {
       c.delete(id);
 
   @override
+  Future<void> setLocation({
+    required UserID uid,
+    required PropertyID id,
+    required double lat,
+    required double lng,
+  }) =>
+      c.set(id, {'lat': lat, 'lng': lng}, merge: true);
+
+  @override
   Future<String> uploadPhoto({
     required UserID uid,
     required PropertyID propertyId,
@@ -309,4 +324,52 @@ class DemoMarketStudyRepository extends MarketStudyRepository {
     required PropertyID propertyId,
     required StudySettings settings,
   }) => this.settings.set(propertyId, settings.toMap());
+}
+
+class DemoInteractionsRepository extends InteractionsRepository {
+  DemoInteractionsRepository(this.c) : super(NoFirestore());
+  final MemoryCollection c;
+
+  @override
+  Stream<List<Interaction>> watchInteractions({required UserID uid}) =>
+      c.watch(Interaction.fromMap).map((l) => l..sort((a, b) => b.at.compareTo(a.at)));
+
+  @override
+  Future<void> add({required UserID uid, required Interaction interaction}) =>
+      c.add(interaction.toMap());
+
+  @override
+  Future<void> delete({required UserID uid, required InteractionID id}) =>
+      c.delete(id);
+}
+
+class DemoTemplatesRepository extends TemplatesRepository {
+  DemoTemplatesRepository(this.c) : super(NoFirestore());
+  final MemoryCollection c;
+
+  @override
+  Stream<List<MessageTemplate>> watch({required UserID uid}) =>
+      c.watch(MessageTemplate.fromMap);
+
+  @override
+  Future<void> save({required UserID uid, required MessageTemplate t}) =>
+      t.id.isEmpty || t.builtIn ? c.add(t.toMap()) : c.set(t.id, t.toMap());
+
+  @override
+  Future<void> delete({required UserID uid, required TemplateID id}) =>
+      c.delete(id);
+}
+
+class DemoGoalsRepository extends GoalsRepository {
+  DemoGoalsRepository(this.c) : super(NoFirestore());
+  final MemoryCollection c;
+
+  @override
+  Stream<MonthlyGoals> watch({required UserID uid}) => c
+      .watchDoc('goals', (m, _) => MonthlyGoals.fromMap(m))
+      .map((g) => g ?? const MonthlyGoals());
+
+  @override
+  Future<void> save({required UserID uid, required MonthlyGoals goals}) =>
+      c.set('goals', goals.toMap());
 }

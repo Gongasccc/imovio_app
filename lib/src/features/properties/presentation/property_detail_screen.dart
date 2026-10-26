@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:http/http.dart' as http;
-import 'package:imovio/src/features/brochure/presentation/pdf_preview_screen.dart';
-import 'package:imovio/src/features/brochure/application/property_brochure_pdf.dart';
-import 'package:imovio/src/features/brochure/application/pdf_common.dart';
+import 'package:imovio/src/features/brochure/presentation/brochure_actions.dart'
+    deferred as brochure;
+import 'package:imovio/src/features/documents_ai/presentation/land_registry_button.dart';
 import 'package:imovio/src/features/authentication/data/firebase_auth_repository.dart';
 import 'package:imovio/src/features/templates/presentation/send_message_sheet.dart';
 import 'package:imovio/src/features/interactions/presentation/interaction_tile.dart';
@@ -133,27 +132,17 @@ class _PropertyDetailState extends ConsumerState<_PropertyDetail>
     }
   }
 
-  void _openBrochure(BuildContext context) {
+  Future<void> _openBrochure(BuildContext context) async {
     final user = ref.read(authRepositoryProvider).currentUser;
     final property = _data.toProperty();
-    PdfPreviewScreen.open(
+    final consultant = consultantName(ref);
+    await brochure.loadLibrary();
+    if (!context.mounted) return;
+    brochure.openPropertyBrochure(
       context,
-      title: 'Ficha do imóvel',
-      fileName: 'imovel-${pdfSlug(property.title)}.pdf',
-      build: (format) async {
-        final client = http.Client();
-        try {
-          return await PropertyBrochurePdf.build(
-            property,
-            client: client,
-            consultant: consultantName(ref),
-            consultantEmail: user?.email,
-            format: format,
-          );
-        } finally {
-          client.close();
-        }
-      },
+      property,
+      consultant: consultant,
+      consultantEmail: user?.email,
     );
   }
 
@@ -314,9 +303,21 @@ class _PropertyDetailState extends ConsumerState<_PropertyDetail>
                     SectionCard(
                       title: 'Caracterização',
                       icon: Icons.home_outlined,
-                      child: PropertyFieldsForm(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: LandRegistryButton(
+                              onRead: (d) => setState(() => _data.applyLandRegistry(d)),
+                            ),
+                          ),
+                          gapH16,
+                          PropertyFieldsForm(
                         data: _data,
                         onChanged: () => setState(() {}),
+                      ),
+                        ],
                       ),
                     ),
                     gapH16,

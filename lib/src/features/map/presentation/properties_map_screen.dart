@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'package:imovio/src/constants/app_theme.dart';
@@ -10,7 +9,6 @@ import 'package:imovio/src/features/geo/data/geocoder.dart';
 import 'package:imovio/src/features/properties/data/properties_repository.dart';
 import 'package:imovio/src/features/properties/domain/property.dart';
 import 'package:imovio/src/features/properties/presentation/property_list_tile.dart';
-import 'package:imovio/src/routing/app_router.dart';
 import 'package:imovio/src/utils/format.dart';
 
 /// Mapa dos imóveis. Os que ainda não têm coordenadas são localizados pelo
@@ -108,12 +106,11 @@ class _PropertiesMapScreenState extends ConsumerState<PropertiesMapScreen> {
             ),
             children: [
               TileLayer(
-                urlTemplate: dark
-                    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-                    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-                subdomains: const ['a', 'b', 'c', 'd'],
-                retinaMode: RetinaMode.isHighDensity(context),
+                // Mapa do OpenStreetMap; no modo escuro as cores são
+                // invertidas para combinar com a app.
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'pt.imovio.imovio',
+                tileBuilder: dark ? darkModeTileBuilder : null,
               ),
               MarkerLayer(
                 markers: [
@@ -138,8 +135,7 @@ class _PropertiesMapScreenState extends ConsumerState<PropertiesMapScreen> {
               ),
               const RichAttributionWidget(
                 attributions: [
-                  TextSourceAttribution('OpenStreetMap'),
-                  TextSourceAttribution('CARTO'),
+                  TextSourceAttribution('© OpenStreetMap'),
                 ],
               ),
             ],
@@ -207,7 +203,3 @@ class _PriceMarker extends StatelessWidget {
     );
   }
 }
-
-/// Usado em [AppRoute] para abrir o detalhe a partir do mapa.
-void openPropertyFromMap(BuildContext context, Property p) =>
-    context.pushNamed(AppRoute.property.name, pathParameters: {'id': p.id});

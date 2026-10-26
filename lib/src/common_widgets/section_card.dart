@@ -41,7 +41,15 @@ class SectionCard extends StatelessWidget {
                           ?.copyWith(fontWeight: FontWeight.w600),
                     ),
                   ),
-                  ?trailing,
+                  // Em ecrãs estreitos o botão encolhe em vez de sair do cartão.
+                  if (trailing != null)
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: trailing,
+                      ),
+                    ),
                 ],
               ),
               gapH16,

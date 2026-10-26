@@ -46,6 +46,13 @@ class GeminiResponse {
   }
 }
 
+/// Imagem ou PDF enviado ao Gemini junto com o pedido.
+class GeminiFile {
+  const GeminiFile(this.bytes, this.mimeType);
+  final List<int> bytes;
+  final String mimeType;
+}
+
 class GeminiException implements Exception {
   const GeminiException(this.message, {this.status});
   final String message;
@@ -196,12 +203,20 @@ class GeminiClient {
     bool googleSearch = false,
     bool readUrls = false,
     double temperature = 0.2,
+    List<GeminiFile> files = const [],
   }) async {
     final body = jsonEncode({
       'contents': [
         {
           'role': 'user',
           'parts': [
+            for (final f in files)
+              {
+                'inline_data': {
+                  'mime_type': f.mimeType,
+                  'data': base64Encode(f.bytes),
+                },
+              },
             {'text': prompt},
           ],
         },

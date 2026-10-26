@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:imovio/src/features/documents_ai/presentation/pick_document.dart';
+import 'package:imovio/src/features/ai/data/gemini_client.dart';
 import 'package:imovio/src/features/templates/presentation/send_message_sheet.dart';
 import 'package:imovio/src/common_widgets/async_value_widget.dart';
 import 'package:imovio/src/common_widgets/empty_placeholder.dart';
@@ -167,6 +169,49 @@ class _ContactFormState extends ConsumerState<_ContactForm>
     }
   }
 
+  var _readingId = false;
+
+  /// Preenche a identificação a partir de uma foto do CC ou passaporte.
+  Future<void> _readIdCard() async {
+    final picked = await pickDocumentForAi(
+      context,
+      ref,
+      documentName: 'o documento de identificação',
+      personalData: true,
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _readingId = true);
+    try {
+      final d = await picked.$1.readIdCard(picked.$2);
+      if (!mounted) return;
+      if (d.isEmpty) {
+        showSnack(context, 'Não consegui ler o documento. Tente outra foto.',
+            error: true);
+        return;
+      }
+      setState(() {
+        void set(String key, String? v) {
+          if (v != null) _c[key]!.text = v;
+        }
+
+        set('name', d.name);
+        set('nif', d.nif);
+        set('idNum', d.docNumber);
+        set('birth', d.birth);
+        if (d.docType != null && IdDocumentTypes.all.contains(d.docType)) {
+          _idType = d.docType!;
+        }
+      });
+      showSnack(context, 'Dados preenchidos. Confirme-os antes de guardar.');
+    } on GeminiException catch (e) {
+      if (mounted) showSnack(context, e.message, error: true);
+    } catch (e) {
+      if (mounted) showSnack(context, 'Erro ao ler: $e', error: true);
+    } finally {
+      if (mounted) setState(() => _readingId = false);
+    }
+  }
+
   Widget _field(String key, String label,
       {String? hint,
       TextInputType? keyboard,
@@ -286,6 +331,15 @@ class _ContactFormState extends ConsumerState<_ContactForm>
         SectionCard(
           title: 'Identificação',
           icon: Icons.badge_outlined,
+          trailing: TextButton.icon(
+            icon: _readingId
+                ? const SizedBox.square(
+                    dimension: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.document_scanner_outlined),
+            label: const Text('Ler documento (IA)'),
+            onPressed: _readingId ? null : _readIdCard,
+          ),
           child: FormGrid(children: [
             FullWidth(
               child: _field('name', 'Nome',

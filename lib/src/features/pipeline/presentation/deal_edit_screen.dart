@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:imovio/src/features/brochure/presentation/brochure_actions.dart'
+    deferred as brochure;
 import 'package:imovio/src/features/templates/presentation/send_message_sheet.dart';
 import 'package:imovio/src/features/properties/data/properties_repository.dart';
 import 'package:imovio/src/features/contacts/data/contacts_repository.dart';
-import 'package:imovio/src/features/brochure/presentation/pdf_preview_screen.dart';
-import 'package:imovio/src/features/brochure/application/pdf_common.dart';
-import 'package:imovio/src/features/brochure/application/cpcv_sheet_pdf.dart';
 import 'package:imovio/src/common_widgets/async_value_widget.dart';
 import 'package:imovio/src/common_widgets/empty_placeholder.dart';
 import 'package:imovio/src/common_widgets/form_fields.dart';
@@ -136,22 +135,20 @@ class _DealFormState extends ConsumerState<_DealForm> {
             IconButton(
               tooltip: 'Ficha para a minuta do CPCV (PDF)',
               icon: const Icon(Icons.description_outlined),
-              onPressed: () {
+              onPressed: () async {
                 final contacts = ref.read(contactsByIdProvider);
                 final property =
                     ref.read(propertiesByIdProvider)[_propertyId];
-                PdfPreviewScreen.open(
+                final consultant = consultantName(ref);
+                await brochure.loadLibrary();
+                if (!context.mounted) return;
+                brochure.openCpcvSheet(
                   context,
-                  title: 'Ficha para o CPCV',
-                  fileName: 'ficha-cpcv-${pdfSlug(widget.deal.title)}.pdf',
-                  build: (format) => CpcvSheetPdf.build(
-                    deal: widget.deal,
-                    buyer: contacts[_contactId],
-                    seller: contacts[property?.ownerId],
-                    property: property,
-                    consultant: consultantName(ref),
-                    format: format,
-                  ),
+                  deal: widget.deal,
+                  buyer: contacts[_contactId],
+                  seller: contacts[property?.ownerId],
+                  property: property,
+                  consultant: consultant,
                 );
               },
             ),

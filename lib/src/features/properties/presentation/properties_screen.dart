@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:imovio/src/common_widgets/async_value_widget.dart';
 import 'package:imovio/src/common_widgets/empty_placeholder.dart';
 import 'package:imovio/src/common_widgets/page_header.dart';
-import 'package:imovio/src/common_widgets/responsive_center.dart';
 import 'package:imovio/src/constants/app_sizes.dart';
 import 'package:imovio/src/constants/app_theme.dart';
 import 'package:imovio/src/features/authentication/data/firebase_auth_repository.dart';
@@ -61,101 +59,122 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
         icon: const Icon(Icons.add_home_outlined),
         label: const Text('Cadastrar Novo Imóvel'),
       ),
-      body: ListView(
-        padding: const EdgeInsets.only(bottom: 96),
-        children: [
-          ResponsiveCenter(
-            padding: const EdgeInsets.all(Sizes.p16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                PageHeader(
-                  title: 'Imóveis',
-                  subtitle:
-                      '${all.length} imóveis em carteira. Cadastro, '
-                      'importação por link e galeria de fotos.',
-                ),
-                gapH16,
-                Wrap(
-                  spacing: Sizes.p12,
-                  runSpacing: Sizes.p12,
-                  children: [
-                    SizedBox(
-                      width: 260,
-                      child: TextField(
-                        decoration: const InputDecoration(
-                          prefixIcon: Icon(Icons.search),
-                          hintText: 'Pesquisar título ou morada',
-                        ),
-                        onChanged: (v) => setState(() => _query = v.trim()),
+      // Lista "preguiçosa": só desenha os cartões que estão no ecrã, para
+      // continuar rápida com centenas de imóveis.
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final side =
+              ((constraints.maxWidth - 1200) / 2).clamp(0.0, double.infinity) +
+              Sizes.p16;
+          final filtered = _filter(value.value ?? const <Property>[]);
+          return CustomScrollView(
+            slivers: [
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(side, Sizes.p16, side, Sizes.p16),
+                sliver: SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      PageHeader(
+                        title: 'Imóveis',
+                        subtitle:
+                            '${all.length} imóveis em carteira. Cadastro, '
+                            'importação por link e galeria de fotos.',
                       ),
-                    ),
-                    _Filter(
-                      label: 'Negócio',
-                      value: _negocio,
-                      options: PropertyOptions.negocios,
-                      onChanged: (v) => setState(() => _negocio = v),
-                    ),
-                    _Filter(
-                      label: 'Distrito',
-                      value: _distrito,
-                      options: _values(all.map((p) => p.distrito)),
-                      onChanged: (v) => setState(() {
-                        _distrito = v;
-                        _concelho = null;
-                        _freguesia = null;
-                      }),
-                    ),
-                    _Filter(
-                      label: 'Concelho',
-                      value: _concelho,
-                      options: _values(inDistrito.map((p) => p.concelho)),
-                      onChanged: (v) => setState(() {
-                        _concelho = v;
-                        _freguesia = null;
-                      }),
-                    ),
-                    _Filter(
-                      label: 'Freguesia',
-                      value: _freguesia,
-                      options: _values(inConcelho.map((p) => p.freguesia)),
-                      onChanged: (v) => setState(() => _freguesia = v),
-                    ),
-                  ],
-                ),
-                gapH16,
-                AsyncValueWidget<List<Property>>(
-                  value: value,
-                  data: (list) {
-                    final filtered = _filter(list);
-                    if (filtered.isEmpty) {
-                      return EmptyPlaceholder(
-                        icon: Icons.home_outlined,
-                        message: list.isEmpty
-                            ? 'Nenhum imóvel cadastrado.'
-                            : 'Nenhum imóvel corresponde aos filtros.',
-                      );
-                    }
-                    return GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate:
-                          const SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: 340,
-                            mainAxisExtent: 345,
-                            crossAxisSpacing: Sizes.p16,
-                            mainAxisSpacing: Sizes.p16,
+                      gapH16,
+                      Wrap(
+                        spacing: Sizes.p12,
+                        runSpacing: Sizes.p12,
+                        children: [
+                          SizedBox(
+                            width: 260,
+                            child: TextField(
+                              decoration: const InputDecoration(
+                                prefixIcon: Icon(Icons.search),
+                                hintText: 'Pesquisar título ou morada',
+                              ),
+                              onChanged: (v) =>
+                                  setState(() => _query = v.trim()),
+                            ),
                           ),
-                      itemCount: filtered.length,
-                      itemBuilder: (_, i) =>
-                          _PropertyCard(property: filtered[i]),
-                    );
-                  },
+                          _Filter(
+                            label: 'Negócio',
+                            value: _negocio,
+                            options: PropertyOptions.negocios,
+                            onChanged: (v) => setState(() => _negocio = v),
+                          ),
+                          _Filter(
+                            label: 'Distrito',
+                            value: _distrito,
+                            options: _values(all.map((p) => p.distrito)),
+                            onChanged: (v) => setState(() {
+                              _distrito = v;
+                              _concelho = null;
+                              _freguesia = null;
+                            }),
+                          ),
+                          _Filter(
+                            label: 'Concelho',
+                            value: _concelho,
+                            options: _values(inDistrito.map((p) => p.concelho)),
+                            onChanged: (v) => setState(() {
+                              _concelho = v;
+                              _freguesia = null;
+                            }),
+                          ),
+                          _Filter(
+                            label: 'Freguesia',
+                            value: _freguesia,
+                            options: _values(
+                              inConcelho.map((p) => p.freguesia),
+                            ),
+                            onChanged: (v) => setState(() => _freguesia = v),
+                          ),
+                        ],
+                      ),
+                      gapH16,
+                    ],
+                  ),
                 ),
-              ],
-            ),
-          ),
-        ],
+              ),
+              if (value.hasError && !value.hasValue)
+                SliverToBoxAdapter(
+                  child: EmptyPlaceholder(
+                    icon: Icons.error_outline,
+                    message: 'Ocorreu um erro: ${value.error}',
+                  ),
+                )
+              else if (value.isLoading && !value.hasValue)
+                const SliverToBoxAdapter(
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (filtered.isEmpty)
+                SliverToBoxAdapter(
+                  child: EmptyPlaceholder(
+                    icon: Icons.home_outlined,
+                    message: all.isEmpty
+                        ? 'Nenhum imóvel cadastrado.'
+                        : 'Nenhum imóvel corresponde aos filtros.',
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(side, 0, side, 96),
+                  sliver: SliverGrid.builder(
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 340,
+                          mainAxisExtent: 345,
+                          crossAxisSpacing: Sizes.p16,
+                          mainAxisSpacing: Sizes.p16,
+                        ),
+                    itemCount: filtered.length,
+                    itemBuilder: (_, i) => _PropertyCard(property: filtered[i]),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }

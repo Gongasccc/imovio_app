@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:imovio/src/features/documents_ai/application/document_reader.dart';
 import 'package:imovio/src/common_widgets/form_fields.dart';
 import 'package:imovio/src/features/properties/application/listing_import_service.dart';
 import 'package:imovio/src/features/properties/domain/property.dart';
@@ -105,6 +106,34 @@ class PropertyFormData {
     tipo = l.tipo ?? tipo;
     tipologia = l.tipologia ?? tipologia;
     text['sourceUrl']!.text = url;
+  }
+
+  /// Preenche com o que foi lido da caderneta predial. O artigo matricial e
+  /// o valor patrimonial ficam nas notas da venda.
+  void applyLandRegistry(LandRegistryData d) {
+    void set(String key, Object? value) {
+      if (value != null) text[key]!.text = value.toString();
+    }
+
+    set('distrito', d.distrito);
+    set('concelho', d.concelho);
+    set('freguesia', d.freguesia);
+    set('morada', d.morada);
+    set('areaBruta', d.areaBruta);
+    set('areaUtil', d.areaUtil);
+    set('areaTerreno', d.areaTerreno);
+    tipologia = d.tipologia ?? tipologia;
+    final notes = [
+      if (d.article != null) 'Artigo matricial: ${d.article}',
+      if (d.patrimonialValue != null)
+        'Valor patrimonial: ${Format.euros(d.patrimonialValue)}',
+      if (d.year != null) 'Inscrito na matriz em ${d.year}',
+    ];
+    if (notes.isNotEmpty) {
+      final current = text['saleNotes']!.text.trim();
+      text['saleNotes']!.text =
+          [if (current.isNotEmpty) current, ...notes].join('\n');
+    }
   }
 
   Property toProperty() => Property(

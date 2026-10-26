@@ -13,6 +13,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:imovio/src/features/templates/data/templates_repository.dart';
+import 'package:imovio/src/features/interactions/data/interactions_repository.dart';
+import 'package:imovio/src/features/goals/data/goals_repository.dart';
 import 'package:imovio/src/app.dart';
 import 'package:imovio/src/features/authentication/data/firebase_auth_repository.dart';
 import 'package:imovio/src/features/contacts/data/contacts_repository.dart';
@@ -115,7 +118,14 @@ Future<void> main() async {
         settingsRepositoryProvider.overrideWithValue(
           DemoSettingsRepository(settings),
         ),
-        marketStudyRepositoryProvider.overrideWithValue(
+        interactionsRepositoryProvider
+          .overrideWithValue(DemoInteractionsRepository(MemoryCollection())),
+      templatesRepositoryProvider
+          .overrideWithValue(DemoTemplatesRepository(MemoryCollection())),
+      goalsRepositoryProvider.overrideWithValue(DemoGoalsRepository(_seed([
+        ('goals', {'angariacoes': 3, 'visitas': 10, 'propostas': 4, 'vendas': 1, 'lucro': 5000}),
+      ]))),
+      marketStudyRepositoryProvider.overrideWithValue(
           DemoMarketStudyRepository(MemoryCollection(), MemoryCollection()),
         ),
       ],

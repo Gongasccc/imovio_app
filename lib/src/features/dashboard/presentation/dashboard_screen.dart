@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:imovio/src/features/goals/domain/goals.dart';
+import 'package:imovio/src/features/goals/data/goals_repository.dart';
 import 'package:imovio/src/common_widgets/async_value_widget.dart';
 import 'package:imovio/src/common_widgets/page_header.dart';
 import 'package:imovio/src/common_widgets/responsive_center.dart';
@@ -103,6 +105,8 @@ class _DashboardBody extends StatelessWidget {
         ),
         gapH16,
         _SalesCard(kpis: k),
+        gapH16,
+        const _GoalsSummary(),
         gapH16,
         LayoutBuilder(
           builder: (context, c) {
@@ -327,6 +331,62 @@ class _SalesCard extends StatelessWidget {
             Format.euros(kpis.expensesTotal),
             note: 'Em todos os imóveis',
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Resumo das metas do mês, com ligação ao ecrã de objetivos.
+class _GoalsSummary extends ConsumerWidget {
+  const _GoalsSummary();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final goals = ref.watch(goalsStreamProvider).value ?? const MonthlyGoals();
+    final month = ref.watch(monthlyResultsProvider).last;
+    final scheme = Theme.of(context).colorScheme;
+    final items = [
+      ('Angariações', month.listings, goals.listings),
+      ('Visitas', month.visits, goals.visits),
+      ('Vendas', month.sales, goals.sales),
+    ];
+    return SectionCard(
+      title: 'Objetivos do mês',
+      icon: Icons.flag_outlined,
+      trailing: TextButton(
+        onPressed: () => context.pushNamed(AppRoute.goals.name),
+        child: Text(goals.isEmpty ? 'Definir metas' : 'Ver funil'),
+      ),
+      child: Row(
+        children: [
+          for (final (label, done, goal) in items)
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label,
+                      style:
+                          TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
+                  gapH4,
+                  Text(goal == null ? '$done' : '$done / $goal',
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.w700)),
+                  gapH4,
+                  Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: LinearProgressIndicator(
+                      value: goal == null || goal == 0
+                          ? 0
+                          : (done / goal).clamp(0, 1).toDouble(),
+                      minHeight: 6,
+                      borderRadius: BorderRadius.circular(6),
+                      backgroundColor: scheme.surfaceContainerHighest,
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );

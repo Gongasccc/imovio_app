@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:imovio/src/features/documents_ai/presentation/land_registry_button.dart';
 import 'package:imovio/src/routing/app_router.dart';
 import 'package:imovio/src/features/properties/application/property_matching.dart';
 import 'package:imovio/src/features/contacts/data/contacts_repository.dart';
@@ -178,9 +179,21 @@ class _PropertyNewScreenState extends ConsumerState<PropertyNewScreen> {
                   SectionCard(
                     title: 'Dados do imóvel',
                     icon: Icons.home_outlined,
-                    child: PropertyFieldsForm(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: LandRegistryButton(
+                            onRead: (d) => setState(() => _data.applyLandRegistry(d)),
+                          ),
+                        ),
+                        gapH16,
+                        PropertyFieldsForm(
                       data: _data,
                       onChanged: () => setState(() {}),
+                    ),
+                      ],
                     ),
                   ),
                   gapH16,
