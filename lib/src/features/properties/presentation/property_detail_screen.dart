@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:imovio/src/features/templates/presentation/send_message_sheet.dart';
+import 'package:imovio/src/features/interactions/presentation/interaction_tile.dart';
+import 'package:imovio/src/features/interactions/domain/interaction.dart';
+import 'package:imovio/src/features/interactions/data/interactions_repository.dart';
 import 'package:imovio/src/common_widgets/async_value_widget.dart';
 import 'package:imovio/src/common_widgets/date_time_field.dart';
 import 'package:imovio/src/common_widgets/empty_placeholder.dart';
@@ -497,6 +501,11 @@ class _ContactsTab extends ConsumerWidget {
     final deals = (ref.watch(dealsStreamProvider).value ?? const [])
         .where((d) => d.propertyId == property.id)
         .toList();
+    final feedback = [
+      for (final list in ref.watch(interactionsByContactProvider).values)
+        for (final i in list)
+          if (i.propertyId == property.id && i.kind == InteractionKind.visit) i,
+    ]..sort((a, b) => b.at.compareTo(a.at));
     final interested = contacts
         .where((c) => matchingProperties(c, [property]).isNotEmpty)
         .toList();
@@ -550,6 +559,23 @@ class _ContactsTab extends ConsumerWidget {
               ? const Text('Sem visitas agendadas para este imóvel.')
               : Column(children: [for (final v in visits) TaskTile(task: v)]),
         ),
+        if (feedback.isNotEmpty) ...[
+          gapH16,
+          SectionCard(
+            title: 'Opinião dos clientes nas visitas',
+            icon: Icons.reviews_outlined,
+            child: Column(
+              children: [
+                for (final i in feedback)
+                  InteractionTile(
+                    interaction: i,
+                    showContact: true,
+                    showProperty: false,
+                  ),
+              ],
+            ),
+          ),
+        ],
         gapH16,
         SectionCard(
           title: 'Negócios com este imóvel',
@@ -560,7 +586,7 @@ class _ContactsTab extends ConsumerWidget {
         ),
         gapH16,
         SectionCard(
-          title: 'Interessados compatíveis',
+          title: 'Interessados compatíveis (${interested.length})',
           icon: Icons.auto_awesome_outlined,
           child: interested.isEmpty
               ? const Text(
@@ -573,7 +599,21 @@ class _ContactsTab extends ConsumerWidget {
                         contentPadding: EdgeInsets.zero,
                         title: Text(c.name),
                         subtitle: Text(c.phone ?? c.email ?? ''),
-                        trailing: StatusBadge(label: c.type),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            StatusBadge(label: c.type),
+                            IconButton(
+                              tooltip: 'Enviar este imóvel',
+                              icon: const Icon(Icons.send_outlined),
+                              onPressed: () => showSendMessageSheet(
+                                context,
+                                contact: c,
+                                property: property,
+                              ),
+                            ),
+                          ],
+                        ),
                         onTap: () => context.pushNamed(
                           AppRoute.contact.name,
                           pathParameters: {'id': c.id},

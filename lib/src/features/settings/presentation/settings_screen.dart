@@ -70,6 +70,21 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 ),
                 gapH16,
+                SectionCard(
+                  title: 'Comunicação',
+                  icon: Icons.forum_outlined,
+                  padding: const EdgeInsets.fromLTRB(20, 20, 8, 8),
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.text_snippet_outlined),
+                    title: const Text('Modelos de mensagens'),
+                    subtitle: const Text(
+                        'WhatsApp, SMS e email com os dados preenchidos'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.pushNamed(AppRoute.templates.name),
+                  ),
+                ),
+                gapH16,
                 const _AiSettingsCard(),
                 gapH16,
                 const SectionCard(

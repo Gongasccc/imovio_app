@@ -61,6 +61,17 @@ class PropertiesRepository {
         .set(data, SetOptions(merge: true));
   }
 
+  /// Guarda só as coordenadas (usadas pelo mapa).
+  Future<void> setLocation({
+    required UserID uid,
+    required PropertyID id,
+    required double lat,
+    required double lng,
+  }) => _firestore.doc(propertyPath(uid, id)).set({
+    'lat': lat,
+    'lng': lng,
+  }, SetOptions(merge: true));
+
   Future<void> deleteProperty({
     required UserID uid,
     required PropertyID id,

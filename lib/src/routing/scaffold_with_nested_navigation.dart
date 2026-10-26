@@ -20,6 +20,14 @@ const _destinations = [
   _Destination('Tarefas', Icons.task_alt_outlined, Icons.task_alt),
 ];
 
+/// Páginas que não são separadores (abrem por cima), no menu e na barra
+/// lateral.
+const _extraPages = [
+  (AppRoute.goals, 'Objetivos', Icons.flag_outlined),
+  (AppRoute.map, 'Mapa', Icons.map_outlined),
+  (AppRoute.settings, 'Configurações', Icons.settings_outlined),
+];
+
 /// Quantos destinos aparecem na barra inferior do telemóvel. Os restantes
 /// (e as Configurações) ficam no menu lateral.
 const _bottomBarCount = 3;
@@ -94,10 +102,16 @@ class ScaffoldWithNestedNavigation extends StatelessWidget {
                 alignment: Alignment.bottomCenter,
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: Sizes.p16),
-                  child: IconButton(
-                    tooltip: 'Configurações',
-                    icon: const Icon(Icons.settings_outlined),
-                    onPressed: () => context.pushNamed(AppRoute.settings.name),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      for (final (route, label, icon) in _extraPages)
+                        IconButton(
+                          tooltip: label,
+                          icon: Icon(icon),
+                          onPressed: () => context.pushNamed(route.name),
+                        ),
+                    ],
                   ),
                 ),
               ),
@@ -137,7 +151,7 @@ class ScaffoldWithNestedNavigation extends StatelessWidget {
           if (i < _destinations.length) {
             _goBranch(i);
           } else {
-            context.pushNamed(AppRoute.settings.name);
+            context.pushNamed(_extraPages[i - _destinations.length].$1.name);
           }
         },
         children: [
@@ -155,10 +169,8 @@ class ScaffoldWithNestedNavigation extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: 28, vertical: 8),
             child: Divider(),
           ),
-          const NavigationDrawerDestination(
-            icon: Icon(Icons.settings_outlined),
-            label: Text('Configurações'),
-          ),
+          for (final (_, label, icon) in _extraPages)
+            NavigationDrawerDestination(icon: Icon(icon), label: Text(label)),
         ],
       ),
       body: SafeArea(top: false, bottom: false, child: navigationShell),

@@ -5,6 +5,8 @@ import 'package:imovio/src/common_widgets/status_badge.dart';
 import 'package:imovio/src/constants/app_theme.dart';
 import 'package:imovio/src/features/authentication/data/firebase_auth_repository.dart';
 import 'package:imovio/src/features/contacts/data/contacts_repository.dart';
+import 'package:imovio/src/features/interactions/data/interactions_repository.dart';
+import 'package:imovio/src/features/interactions/presentation/interaction_dialog.dart';
 import 'package:imovio/src/features/properties/data/properties_repository.dart';
 import 'package:imovio/src/features/tasks/data/tasks_repository.dart';
 import 'package:imovio/src/features/tasks/domain/task.dart';
@@ -40,10 +42,36 @@ class TaskTile extends ConsumerWidget {
           children: [
             Checkbox(
               value: task.isDone,
-              onChanged: (v) => runAction(
-                context,
-                () => repo.setDone(uid: uid, id: task.id, done: v ?? false),
-              ),
+              onChanged: (v) async {
+                final done = v ?? false;
+                final ok = await runAction(
+                  context,
+                  () => repo.setDone(uid: uid, id: task.id, done: done),
+                );
+                // Visita concluída: pergunta logo como correu.
+                if (ok &&
+                    done &&
+                    task.category == TaskCategories.visit &&
+                    task.contactId != null &&
+                    context.mounted) {
+                  final feedback = await showInteractionDialog(
+                    context,
+                    contactId: task.contactId!,
+                    propertyId: task.propertyId,
+                    taskId: task.id,
+                    visit: true,
+                  );
+                  if (feedback != null && context.mounted) {
+                    await runAction(
+                      context,
+                      () => ref
+                          .read(interactionsRepositoryProvider)
+                          .add(uid: uid, interaction: feedback),
+                      success: 'Opinião da visita guardada',
+                    );
+                  }
+                }
+              },
             ),
             Expanded(
               child: Column(

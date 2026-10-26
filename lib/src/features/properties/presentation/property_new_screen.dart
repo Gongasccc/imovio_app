@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:imovio/src/routing/app_router.dart';
+import 'package:imovio/src/features/properties/application/property_matching.dart';
+import 'package:imovio/src/features/contacts/data/contacts_repository.dart';
 import 'package:imovio/src/common_widgets/responsive_center.dart';
 import 'package:imovio/src/common_widgets/section_card.dart';
 import 'package:imovio/src/constants/app_sizes.dart';
@@ -74,13 +77,34 @@ class _PropertyNewScreenState extends ConsumerState<PropertyNewScreen> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+    final property = _data.toProperty();
     final ok = await ref
         .read(propertyEditControllerProvider.notifier)
-        .submit(_data.toProperty(), isNew: true);
-    if (ok && mounted) {
-      showSnack(context, 'Imóvel cadastrado com sucesso!');
-      context.pop();
-    }
+        .submit(property, isNew: true);
+    if (!ok || !mounted) return;
+    // Avisa logo se há contactos à procura de um imóvel assim.
+    final contacts = ref.read(contactsStreamProvider).value ?? const [];
+    final matches = contacts
+        .where((c) => matchingProperties(c, [property]).isNotEmpty)
+        .length;
+    final messenger = ScaffoldMessenger.of(context);
+    final router = GoRouter.of(context);
+    context.pop();
+    messenger.showSnackBar(SnackBar(
+      duration: const Duration(seconds: 8),
+      content: Text(matches == 0
+          ? 'Imóvel cadastrado com sucesso!'
+          : 'Imóvel cadastrado. $matches contacto(s) procuram um imóvel assim.'),
+      action: matches == 0
+          ? null
+          : SnackBarAction(
+              label: 'Ver e avisar',
+              onPressed: () => router.pushNamed(
+                AppRoute.property.name,
+                pathParameters: {'id': property.id},
+              ),
+            ),
+    ));
   }
 
   @override

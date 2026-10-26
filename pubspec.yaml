@@ -56,6 +56,9 @@ dependencies:
   pdf: ^3.13.1
   printing: ^5.15.1
   file_picker: ^13.2.0
+  flutter_map: ^8.3.2
+  latlong2: ^0.10.1
+  archive: ^4.5.2
 
 dev_dependencies:
   flutter_test:

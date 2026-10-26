@@ -69,6 +69,8 @@ class Property extends Equatable {
     this.saleMode,
     this.sharePct,
     this.vatPct,
+    this.lat,
+    this.lng,
     this.dateStart,
     this.dateEnd,
     this.saleNotes,
@@ -130,6 +132,12 @@ class Property extends Equatable {
   final num? vatPct;
 
   bool get isShared => saleMode == 'Partilha';
+
+  /// Coordenadas para o mapa (calculadas a partir da morada / código postal).
+  final double? lat;
+  final double? lng;
+
+  bool get hasLocation => lat != null && lng != null;
   final String? dateStart;
   final String? dateEnd;
   final String? saleNotes;
@@ -189,6 +197,8 @@ class Property extends Equatable {
       saleMode: s('saleMode'),
       sharePct: parseNum(data['sharePct']),
       vatPct: parseNum(data['vatPct']),
+      lat: parseNum(data['lat'])?.toDouble(),
+      lng: parseNum(data['lng'])?.toDouble(),
       dateStart: s('dateStart'),
       dateEnd: s('dateEnd'),
       saleNotes: s('saleNotes'),
@@ -229,6 +239,8 @@ class Property extends Equatable {
     'saleMode': saleMode ?? '',
     'sharePct': sharePct,
     'vatPct': vatPct,
+    'lat': ?lat,
+    'lng': ?lng,
     'dateStart': dateStart ?? '',
     'dateEnd': dateEnd ?? '',
     'saleNotes': saleNotes ?? '',
@@ -267,6 +279,8 @@ class Property extends Equatable {
     saleMode: saleMode,
     sharePct: sharePct,
     vatPct: vatPct,
+    lat: lat,
+    lng: lng,
     dateStart: dateStart,
     dateEnd: dateEnd,
     saleNotes: saleNotes,

@@ -17,6 +17,9 @@ import 'package:imovio/src/features/settings/presentation/settings_screen.dart';
 import 'package:imovio/src/features/tasks/presentation/task_edit_screen.dart';
 import 'package:imovio/src/features/team/presentation/team_screen.dart';
 import 'package:imovio/src/features/tasks/presentation/tasks_screen.dart';
+import 'package:imovio/src/features/goals/presentation/goals_screen.dart';
+import 'package:imovio/src/features/map/presentation/properties_map_screen.dart';
+import 'package:imovio/src/features/templates/presentation/templates_screen.dart';
 import 'package:imovio/src/routing/go_router_refresh_stream.dart';
 import 'package:imovio/src/routing/not_found_screen.dart';
 import 'package:imovio/src/routing/scaffold_with_nested_navigation.dart';
@@ -50,6 +53,9 @@ enum AppRoute {
   task,
   settings,
   team,
+  templates,
+  goals,
+  map,
 }
 
 const _protectedPrefixes = [
@@ -59,6 +65,9 @@ const _protectedPrefixes = [
   '/pipeline',
   '/tasks',
   '/settings',
+  '/templates',
+  '/goals',
+  '/map',
   '/team',
 ];
 
@@ -98,6 +107,24 @@ GoRouter goRouter(Ref ref) {
         name: AppRoute.settings.name,
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/templates',
+        name: AppRoute.templates.name,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const TemplatesScreen(),
+      ),
+      GoRoute(
+        path: '/goals',
+        name: AppRoute.goals.name,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const GoalsScreen(),
+      ),
+      GoRoute(
+        path: '/map',
+        name: AppRoute.map.name,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const PropertiesMapScreen(),
       ),
       GoRoute(
         path: '/team',

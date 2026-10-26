@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:imovio/src/features/templates/presentation/send_message_sheet.dart';
 import 'package:imovio/src/common_widgets/async_value_widget.dart';
 import 'package:imovio/src/common_widgets/empty_placeholder.dart';
 import 'package:imovio/src/common_widgets/form_fields.dart';
 import 'package:imovio/src/common_widgets/responsive_center.dart';
 import 'package:imovio/src/common_widgets/section_card.dart';
 import 'package:imovio/src/constants/app_sizes.dart';
+import 'package:imovio/src/features/authentication/data/firebase_auth_repository.dart';
+import 'package:imovio/src/features/interactions/application/contact_actions.dart';
+import 'package:imovio/src/features/interactions/data/interactions_repository.dart';
+import 'package:imovio/src/features/interactions/presentation/interaction_dialog.dart';
+import 'package:imovio/src/features/interactions/presentation/interaction_tile.dart';
+import 'package:imovio/src/utils/run_action.dart';
 import 'package:imovio/src/features/contacts/data/contacts_repository.dart';
 import 'package:imovio/src/features/contacts/domain/contact.dart';
 import 'package:imovio/src/features/contacts/presentation/contact_attachments_section.dart';
@@ -24,7 +31,6 @@ import 'package:imovio/src/routing/app_router.dart';
 import 'package:imovio/src/utils/async_value_ui.dart';
 import 'package:imovio/src/utils/dialogs.dart';
 import 'package:imovio/src/utils/format.dart';
-import 'package:imovio/src/utils/launcher.dart';
 
 /// Ficha do contacto (novo quando [contactId] é null), com as 3 abas da app
 /// original: dados gerais, imóvel e histórico.
@@ -189,19 +195,30 @@ class _ContactFormState extends ConsumerState<_ContactForm>
               IconButton(
                 tooltip: 'Ligar',
                 icon: const Icon(Icons.call_outlined),
-                onPressed: () => callPhone(contact!.phone!),
+                onPressed: () => ContactActions(ref).call(contact!),
               ),
               IconButton(
                 tooltip: 'WhatsApp',
                 icon: const Icon(Icons.chat_outlined),
-                onPressed: () => openWhatsApp(contact!.phone!),
+                onPressed: () => ContactActions(ref).whatsapp(contact!),
               ),
             ],
+            if (contact != null &&
+                (contact.phone != null || contact.email != null))
+              IconButton(
+                tooltip: 'Mensagem com modelo',
+                icon: const Icon(Icons.send_outlined),
+                onPressed: () => showSendMessageSheet(
+                  context,
+                  contact: contact,
+                  initialTemplateId: 'builtin-seguimento',
+                ),
+              ),
             if (contact?.email != null)
               IconButton(
                 tooltip: 'Enviar email',
                 icon: const Icon(Icons.mail_outline),
-                onPressed: () => sendEmail(contact!.email!),
+                onPressed: () => ContactActions(ref).email(contact!),
               ),
             if (!_isNew)
               IconButton(
@@ -429,26 +446,12 @@ class _HistoryTab extends ConsumerWidget {
               : Column(children: [for (final d in deals) DealTile(deal: d)]),
         ),
         gapH16,
-        SectionCard(
-          title: 'Linha do tempo',
-          icon: Icons.timeline,
-          child: Text(
-            [
-              if (c.createdAt != null)
-                'Criado em ${Format.dateTime(DateTime.fromMillisecondsSinceEpoch(c.createdAt!))}',
-              if (c.updatedAt != null)
-                'Última alteração em ${Format.dateTime(DateTime.fromMillisecondsSinceEpoch(c.updatedAt!))}',
-            ].join('\n').ifEmpty('Sem registos ainda.'),
-          ),
-        ),
+        _Timeline(contact: c),
       ],
     );
   }
 }
 
-extension on String {
-  String ifEmpty(String fallback) => isEmpty ? fallback : this;
-}
 
 /// Campo de data que guarda "yyyy-MM-dd", como o input date do HTML.
 class _DateField extends StatelessWidget {
@@ -475,6 +478,59 @@ class _DateField extends StatelessWidget {
         );
         if (picked != null) controller.text = formatIsoDate(picked);
       },
+    );
+  }
+}
+
+
+/// Chamadas, mensagens, visitas e notas, das mais recentes para as mais
+/// antigas. As feitas pelos botões da app entram sozinhas.
+class _Timeline extends ConsumerWidget {
+  const _Timeline({required this.contact});
+  final Contact contact;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final items = ref.watch(interactionsByContactProvider)[contact.id] ?? const [];
+    final created = contact.createdAt == null
+        ? null
+        : DateTime.fromMillisecondsSinceEpoch(contact.createdAt!);
+    return SectionCard(
+      title: 'Linha do tempo',
+      icon: Icons.timeline,
+      trailing: TextButton.icon(
+        icon: const Icon(Icons.add),
+        label: const Text('Registar'),
+        onPressed: () async {
+          final i = await showInteractionDialog(context, contactId: contact.id);
+          if (i == null || !context.mounted) return;
+          await runAction(
+            context,
+            () => ref
+                .read(interactionsRepositoryProvider)
+                .add(uid: ref.read(currentUidProvider), interaction: i),
+            success: 'Registado na linha do tempo',
+          );
+        },
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final i in items) InteractionTile(interaction: i),
+          if (items.isEmpty)
+            const Text(
+              'Sem registos. As chamadas, WhatsApps e emails feitos pelos '
+              'botões do contacto aparecem aqui sozinhos.',
+            ),
+          if (created != null) ...[
+            gapH8,
+            Text('Contacto criado em ${Format.dateTime(created)}',
+                style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          ],
+        ],
+      ),
     );
   }
 }
