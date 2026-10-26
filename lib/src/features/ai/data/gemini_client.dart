@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -89,6 +90,43 @@ class GeminiClient {
         _modelsByKey.remove(_apiKey);
         return preferredModels;
       });
+
+  /// Confirma a chave pedindo a lista de modelos: é rápido e não depende de
+  /// os modelos estarem ocupados. Devolve os modelos Flash disponíveis.
+  Future<List<String>> validateKey({
+    Duration timeout = const Duration(seconds: 15),
+  }) async {
+    final http.Response res;
+    try {
+      res = await _client
+          .get(
+            Uri.https('generativelanguage.googleapis.com', '/v1beta/models', {
+              'pageSize': '1000',
+            }),
+            headers: {'x-goog-api-key': _apiKey},
+          )
+          .timeout(timeout);
+    } on TimeoutException {
+      throw const GeminiException(
+        'A Google não respondeu a tempo. Verifique a internet e tente outra vez.',
+      );
+    }
+    final data = res.body.isEmpty
+        ? const <String, dynamic>{}
+        : jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    if (res.statusCode != 200) throw _error(res.statusCode, data);
+    final ranked = rankModels([
+      for (final m in data['models'] as List? ?? const [])
+        if ((m['supportedGenerationMethods'] as List? ?? const []).contains(
+          'generateContent',
+        ))
+          (m['name'] as String).replaceFirst('models/', ''),
+    ]);
+    _modelsByKey[_apiKey] = Future.value(
+      ranked.isEmpty ? preferredModels : ranked,
+    );
+    return ranked;
+  }
 
   Future<List<String>> _discoverModels() async {
     final res = await _client

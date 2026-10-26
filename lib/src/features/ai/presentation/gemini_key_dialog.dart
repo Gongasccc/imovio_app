@@ -89,11 +89,18 @@ class _GeminiKeyScreenState extends ConsumerState<GeminiKeyScreen> {
     final uid = ref.read(currentUidProvider);
     final repo = ref.read(geminiKeyRepositoryProvider);
     try {
-      // Pedido mínimo para confirmar que a chave funciona.
+      // Confirma a chave pela lista de modelos (rápido, não depende de os
+      // modelos estarem ocupados) e nunca espera mais de 20 segundos.
       await GeminiClient(
         ref.read(geminiHttpClientProvider),
         key,
-      ).generate('Responde só: ok');
+      ).validateKey().timeout(
+        const Duration(seconds: 20),
+        onTimeout: () => throw const GeminiException(
+          'A Google não respondeu a tempo. Verifique a internet e tente '
+          'outra vez.',
+        ),
+      );
       await repo.setKey(uid: uid, key: key);
       if (mounted) {
         showSnack(context, 'Chave do Gemini guardada');

@@ -80,4 +80,32 @@ void main() {
       );
     });
   });
+
+  test('validar a chave usa só a lista de modelos e é rápido', () async {
+    final valid = GeminiClient(
+      MockClient((req) async {
+        expect(req.method, 'GET');
+        return http.Response(
+          '{"models":[{"name":"models/gemini-flash-latest",'
+          '"supportedGenerationMethods":["generateContent"]}]}',
+          200,
+        );
+      }),
+      'chave-valida',
+    );
+    expect(await valid.validateKey(), ['gemini-flash-latest']);
+
+    final invalid = GeminiClient(
+      MockClient((_) async => http.Response(
+            '{"error":{"message":"API key not valid."}}',
+            400,
+          )),
+      'chave-errada',
+    );
+    await expectLater(
+      invalid.validateKey(),
+      throwsA(isA<GeminiException>()
+          .having((e) => e.isKeyProblem, 'isKeyProblem', isTrue)),
+    );
+  });
 }
