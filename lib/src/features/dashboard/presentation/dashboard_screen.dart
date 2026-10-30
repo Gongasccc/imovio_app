@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:imovio/src/features/goals/domain/goals.dart';
 import 'package:imovio/src/features/goals/data/goals_repository.dart';
 import 'package:imovio/src/common_widgets/async_value_widget.dart';
+import 'package:imovio/src/common_widgets/glass.dart';
 import 'package:imovio/src/common_widgets/page_header.dart';
 import 'package:imovio/src/common_widgets/responsive_center.dart';
 import 'package:imovio/src/common_widgets/section_card.dart';
@@ -66,19 +67,19 @@ class _DashboardBody extends StatelessWidget {
             final cards = [
               _KpiCard(
                 label: 'Total de contactos',
-                value: '${k.contacts}',
+                value: k.contacts.toDouble(),
                 icon: Icons.people_outline,
                 onTap: () => context.goNamed(AppRoute.contacts.name),
               ),
               _KpiCard(
                 label: 'Negócios em pipeline',
-                value: '${k.deals}',
+                value: k.deals.toDouble(),
                 icon: Icons.handshake_outlined,
                 onTap: () => context.goNamed(AppRoute.pipeline.name),
               ),
               _KpiCard(
                 label: 'Tarefas pendentes',
-                value: '${k.pendingTasks}',
+                value: k.pendingTasks.toDouble(),
                 icon: Icons.task_alt,
                 detail: k.overdueTasks.isEmpty
                     ? '${k.todayTasks.length} para hoje'
@@ -88,7 +89,8 @@ class _DashboardBody extends StatelessWidget {
               ),
               _KpiCard(
                 label: 'Valor do pipeline',
-                value: Format.euros(k.pipelineValue),
+                value: k.pipelineValue.toDouble(),
+                format: Format.euros,
                 icon: Icons.euro,
                 highlight: true,
                 onTap: () => context.goNamed(AppRoute.pipeline.name),
@@ -98,17 +100,23 @@ class _DashboardBody extends StatelessWidget {
               spacing: Sizes.p16,
               runSpacing: Sizes.p16,
               children: [
-                for (final card in cards) SizedBox(width: width, child: card),
+                for (final (i, card) in cards.indexed)
+                  SizedBox(
+                    width: width,
+                    child: FadeSlideIn(index: i, child: card),
+                  ),
               ],
             );
           },
         ),
         gapH16,
-        _SalesCard(kpis: k),
+        FadeSlideIn(index: 4, child: _SalesCard(kpis: k)),
         gapH16,
-        const _GoalsSummary(),
+        const FadeSlideIn(index: 5, child: _GoalsSummary()),
         gapH16,
-        LayoutBuilder(
+        FadeSlideIn(
+          index: 6,
+          child: LayoutBuilder(
           builder: (context, c) {
             final remindersCard = SectionCard(
               title: 'Lembretes',
@@ -162,6 +170,7 @@ class _DashboardBody extends StatelessWidget {
             }
             return Column(children: [remindersCard, gapH16, dealsCard]);
           },
+          ),
         ),
       ],
     );
@@ -197,13 +206,17 @@ class _KpiCard extends StatelessWidget {
     required this.label,
     required this.value,
     required this.icon,
+    this.format = _integer,
     this.detail,
     this.detailColor,
     this.highlight = false,
     this.onTap,
   });
+  static String _integer(double v) => '${v.round()}';
+
   final String label;
-  final String value;
+  final double value;
+  final String Function(double) format;
   final IconData icon;
   final String? detail;
   final Color? detailColor;
@@ -240,8 +253,9 @@ class _KpiCard extends StatelessWidget {
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
-                child: Text(
-                  value,
+                child: CountUpText(
+                  value: value,
+                  format: format,
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.w700,
@@ -375,13 +389,22 @@ class _GoalsSummary extends ConsumerWidget {
                   gapH4,
                   Padding(
                     padding: const EdgeInsets.only(right: 12),
-                    child: LinearProgressIndicator(
-                      value: goal == null || goal == 0
-                          ? 0
-                          : (done / goal).clamp(0, 1).toDouble(),
-                      minHeight: 6,
-                      borderRadius: BorderRadius.circular(6),
-                      backgroundColor: scheme.surfaceContainerHighest,
+                    // A barra enche quando o ecrã abre.
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween(
+                        begin: 0,
+                        end: goal == null || goal == 0
+                            ? 0
+                            : (done / goal).clamp(0, 1).toDouble(),
+                      ),
+                      duration: const Duration(milliseconds: 1100),
+                      curve: Curves.easeOutCubic,
+                      builder: (context, v, _) => LinearProgressIndicator(
+                        value: v,
+                        minHeight: 6,
+                        borderRadius: BorderRadius.circular(6),
+                        backgroundColor: scheme.surfaceContainerHighest,
+                      ),
                     ),
                   ),
                 ],

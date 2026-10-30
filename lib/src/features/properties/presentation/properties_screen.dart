@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:imovio/src/common_widgets/glass.dart';
 import 'package:imovio/src/common_widgets/adaptive_fab.dart';
 import 'package:imovio/src/common_widgets/empty_placeholder.dart';
 import 'package:imovio/src/common_widgets/page_header.dart';
@@ -170,7 +171,13 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                           mainAxisSpacing: Sizes.p16,
                         ),
                     itemCount: filtered.length,
-                    itemBuilder: (_, i) => _PropertyCard(property: filtered[i]),
+                    // Os primeiros cartões entram em cascata.
+                    itemBuilder: (_, i) => i < 10
+                        ? FadeSlideIn(
+                            index: i,
+                            child: _PropertyCard(property: filtered[i]),
+                          )
+                        : _PropertyCard(property: filtered[i]),
                   ),
                 ),
             ],

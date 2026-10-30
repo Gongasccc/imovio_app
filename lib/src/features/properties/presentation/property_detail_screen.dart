@@ -180,6 +180,10 @@ class _PropertyDetailState extends ConsumerState<_PropertyDetail>
             SliverAppBar(
               pinned: true,
               expandedHeight: 260,
+              backgroundColor: Theme.of(context)
+                  .colorScheme
+                  .surface
+                  .withValues(alpha: 0.92),
               title: Text(
                 p.title,
                 maxLines: 1,
@@ -300,7 +304,10 @@ class _PropertyDetailState extends ConsumerState<_PropertyDetail>
               bottom: PreferredSize(
                 preferredSize: const Size.fromHeight(kTextTabBarHeight),
                 child: Material(
-                  color: Theme.of(context).colorScheme.surface,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .surface
+                      .withValues(alpha: 0.92),
                   child: TabBar(
                     controller: _tabs,
                     isScrollable: true,

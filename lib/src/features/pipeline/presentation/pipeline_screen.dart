@@ -201,7 +201,7 @@ class _DealCard extends ConsumerWidget {
     final property = ref.watch(propertiesByIdProvider)[deal.propertyId];
     final scheme = Theme.of(context).colorScheme;
     return Card(
-      color: scheme.surface,
+      color: scheme.surface.withValues(alpha: 0.5),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () => context.pushNamed(

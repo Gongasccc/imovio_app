@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:imovio/src/common_widgets/glass.dart';
 import 'package:imovio/src/common_widgets/adaptive_fab.dart';
 import 'package:imovio/src/common_widgets/async_value_widget.dart';
 import 'package:imovio/src/common_widgets/empty_placeholder.dart';
@@ -224,7 +225,7 @@ class _ContactsList extends ConsumerWidget {
       separatorBuilder: (_, _) => gapH8,
       itemBuilder: (context, i) {
         final c = contacts[i];
-        return Card(
+        final card = Card(
           child: ListTile(
             onTap: () => open(c),
             leading: CircleAvatar(
@@ -239,6 +240,8 @@ class _ContactsList extends ConsumerWidget {
             trailing: actions(c),
           ),
         );
+        // Só os primeiros entram em cascata; os seguintes aparecem logo.
+        return i < 10 ? FadeSlideIn(index: i, child: card) : card;
       },
     );
   }

@@ -3,11 +3,13 @@ import 'dart:math' as math;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:imovio/src/common_widgets/glass.dart';
 
 /// Cores da app original: dourado como acento, fundo quase preto no modo
 /// escuro e branco no modo claro.
 class AppColors {
   static const gold = Color(0xFFC5A059);
+  static const goldLight = Color(0xFFE6C98A);
   static const darkBg = Color(0xFF121212);
   static const darkCard = Color(0xFF181818);
   static const darkInput = Color(0xFF242424);
@@ -15,14 +17,16 @@ class AppColors {
   static const lightCard = Color(0xFFF8F9FA);
   static const lightInput = Color(0xFFF1F3F5);
   static const lightBorder = Color(0xFFE9ECEF);
+  static const lightBg = Color(0xFFF4F1EC);
   static const green = Color(0xFF1DB954);
   static const red = Color(0xFFEF4444);
 }
 
 class AppTheme {
   static ThemeData dark() => _build(
-        brightness: Brightness.dark,
-        scheme: ColorScheme.fromSeed(
+    brightness: Brightness.dark,
+    scheme:
+        ColorScheme.fromSeed(
           seedColor: AppColors.gold,
           brightness: Brightness.dark,
         ).copyWith(
@@ -35,14 +39,19 @@ class AppTheme {
           outlineVariant: AppColors.darkBorder,
           error: AppColors.red,
         ),
-        input: AppColors.darkInput,
-        card: AppColors.darkCard,
-        border: AppColors.darkBorder,
-      );
+    input: Colors.white.withValues(alpha: 0.06),
+    card: Colors.white.withValues(alpha: 0.06),
+    border: Colors.white.withValues(alpha: 0.10),
+    glass: GlassTheme(
+      bar: AppColors.darkBg.withValues(alpha: 0.55),
+      edge: Colors.white.withValues(alpha: 0.12),
+    ),
+  );
 
   static ThemeData light() => _build(
-        brightness: Brightness.light,
-        scheme: ColorScheme.fromSeed(
+    brightness: Brightness.light,
+    scheme:
+        ColorScheme.fromSeed(
           seedColor: AppColors.gold,
           brightness: Brightness.light,
         ).copyWith(
@@ -55,10 +64,14 @@ class AppTheme {
           outlineVariant: AppColors.lightBorder,
           error: AppColors.red,
         ),
-        input: AppColors.lightInput,
-        card: AppColors.lightCard,
-        border: AppColors.lightBorder,
-      );
+    input: Colors.white.withValues(alpha: 0.6),
+    card: Colors.white.withValues(alpha: 0.55),
+    border: Colors.black.withValues(alpha: 0.06),
+    glass: GlassTheme(
+      bar: Colors.white.withValues(alpha: 0.6),
+      edge: Colors.white.withValues(alpha: 0.8),
+    ),
+  );
 
   static ThemeData _build({
     required Brightness brightness,
@@ -66,20 +79,23 @@ class AppTheme {
     required Color input,
     required Color card,
     required Color border,
+    required GlassTheme glass,
   }) {
     final base = ThemeData(
       useMaterial3: true,
       brightness: brightness,
       colorScheme: scheme,
-      scaffoldBackgroundColor: scheme.surface,
+      // Transparente: o fundo animado (GlassBackground) fica por trás.
+      scaffoldBackgroundColor: Colors.transparent,
       // Só o nome da família: o google_fonts 9 usa o pacote material_ui,
       // cujo TextTheme é um tipo diferente do de flutter/material.
       fontFamily: GoogleFonts.poppins().fontFamily,
     );
     final radius = BorderRadius.circular(10);
     return base.copyWith(
+      extensions: [glass],
       appBarTheme: AppBarTheme(
-        backgroundColor: scheme.surface,
+        backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -102,8 +118,10 @@ class AppTheme {
         filled: true,
         fillColor: input,
         isDense: true,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: radius,
           borderSide: BorderSide(color: border),
@@ -137,14 +155,18 @@ class AppTheme {
       ),
       dividerTheme: DividerThemeData(color: border, space: 1),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: card,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         indicatorColor: scheme.primary.withValues(alpha: 0.18),
       ),
       navigationRailTheme: NavigationRailThemeData(
-        backgroundColor: card,
+        backgroundColor: Colors.transparent,
         indicatorColor: scheme.primary.withValues(alpha: 0.18),
       ),
-      snackBarTheme: const SnackBarThemeData(behavior: SnackBarBehavior.floating),
+      drawerTheme: const DrawerThemeData(backgroundColor: Colors.transparent),
+      snackBarTheme: const SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+      ),
       // Transições e gesto de voltar como numa app de telemóvel: deslizar
       // da esquerda para a direita volta à página anterior.
       pageTransitionsTheme: PageTransitionsTheme(
@@ -155,6 +177,25 @@ class AppTheme {
       ),
     );
   }
+}
+
+/// Cores do vidro das barras (com desfoque) e da sua aresta.
+class GlassTheme extends ThemeExtension<GlassTheme> {
+  const GlassTheme({required this.bar, required this.edge});
+  final Color bar;
+  final Color edge;
+
+  @override
+  GlassTheme copyWith({Color? bar, Color? edge}) =>
+      GlassTheme(bar: bar ?? this.bar, edge: edge ?? this.edge);
+
+  @override
+  GlassTheme lerp(GlassTheme? other, double t) => other == null
+      ? this
+      : GlassTheme(
+          bar: Color.lerp(bar, other.bar, t)!,
+          edge: Color.lerp(edge, other.edge, t)!,
+        );
 }
 
 /// Transição do iOS (deslizar para voltar) em que o gesto funciona em todo
@@ -188,7 +229,12 @@ class SwipeBackPageTransitionsBuilder extends PageTransitionsBuilder {
         context,
         animation,
         secondaryAnimation,
-        MediaQuery(data: mq, child: child),
+        // Cada página leva o seu fundo, para não se ver a anterior por
+        // baixo enquanto desliza (os Scaffolds são transparentes).
+        MediaQuery(
+          data: mq,
+          child: GlassBackground(child: child),
+        ),
       ),
     );
   }

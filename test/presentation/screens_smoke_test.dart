@@ -262,6 +262,8 @@ void main() {
     for (var i = 0; i < 5; i++) {
       await tester.pump(const Duration(milliseconds: 50));
     }
+    // Deixa os números acabarem de contar.
+    await tester.pump(const Duration(seconds: 1));
     expect(find.text('Em atraso'), findsOneWidget);
     // 2 contactos, 2 negócios e 2 tarefas pendentes.
     expect(find.text('2'), findsNWidgets(3));

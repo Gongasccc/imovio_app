@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:imovio/src/common_widgets/glass.dart';
 import 'package:imovio/src/constants/app_theme.dart';
 import 'package:imovio/src/features/authentication/data/firebase_auth_repository.dart';
 import 'package:imovio/src/features/settings/data/settings_repository.dart';
@@ -32,6 +33,8 @@ class MyApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      // Fundo animado "liquid glass" por trás de todos os ecrãs.
+      builder: (context, child) => GlassBackground(child: child!),
     );
   }
 }
